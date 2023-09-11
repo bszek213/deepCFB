@@ -1,0 +1,302 @@
+Rk,School,From,To
+1,Air Force,1957,2023
+2,Akron,1975,2023
+3,Alabama,1902,2023
+4,Alameda Coast Guard,1943,1944
+5,Alcorn State,1977,1977
+6,Amarillo Field,1944,1944
+7,Amherst,1877,1906
+8,Appalachian State,1972,2023
+9,Arizona,1931,2023
+10,Arizona State,1931,2023
+11,Arkansas,1906,2023
+12,Arkansas State,1974,2023
+13,Army,1891,2023
+14,Auburn,1902,2023
+15,Ball State,1975,2023
+16,Bates,1901,1905
+17,Baylor,1903,2023
+18,Beloit,1894,1905
+19,Birmingham-Southern,1920,1924
+20,Boise State,1996,2023
+21,Boston College,1901,2023
+22,Boston University,1923,1964
+23,Bowdoin,1896,1905
+24,Bowling Green State,1962,2023
+25,Bradley,1949,1951
+26,Brown,1878,1981
+27,Bucknell,1888,1946
+28,Buffalo,1962,2023
+29,Butler,1932,1933
+30,Brigham Young,1922,2023
+31,Cal State Fullerton,1975,1992
+32,Cal State Los Angeles,1969,1971
+33,California,1916,2023
+34,California-Santa Barbara,1969,1971
+35,Camp Grant,1943,1943
+36,Carlisle,1896,1917
+37,Carnegie Mellon,1910,1940
+38,Centenary (LA),1930,1941
+39,Central Michigan,1975,2023
+40,Centre,1919,1935
+41,Charlotte,2015,2023
+42,Chattanooga,1909,1981
+43,Chicago,1892,1939
+44,Cincinnati,1954,2023
+45,Clemson,1902,2023
+46,Coast Guard,1944,1945
+47,Coastal Carolina,2017,2023
+48,Coe,1905,1905
+49,Colby,1904,1904
+50,Colgate,1905,1981
+51,Colorado,1902,2023
+52,Colorado College,1902,1945
+53,Colorado Mines,1902,1937
+54,Colorado State,1902,2023
+55,Columbia,1870,1981
+56,Connecticut,1979,2023
+57,Cornell,1888,1981
+58,Cornell College,1903,1903
+59,Creighton,1927,1942
+60,Cumberland,1903,1905
+61,Dartmouth,1881,1981
+62,Davidson,1902,1973
+63,Dayton,1956,1976
+64,Del Monte Pre-Flight,1943,1943
+65,Denver,1902,1960
+66,Detroit Mercy,1927,1964
+67,Dickinson,1889,1910
+68,Drake,1900,1985
+69,Drury,1907,1907
+70,Duke,1922,2023
+71,Duquesne,1933,1950
+72,East Carolina,1965,2023
+73,East Tennessee State,1979,1981
+74,Eastern Michigan,1975,2023
+75,Erskine,1919,1936
+76,Florida,1911,2023
+77,Florida A&M,2004,2004
+78,Florida Atlantic,2004,2023
+79,Florida International,2004,2023
+80,Florida State,1954,2023
+81,Fordham,1909,1954
+82,Fort Benning,1922,1922
+83,Fort Riley,1943,1943
+84,Fort Warren,1944,1944
+85,Franklin & Marshall,1889,1904
+86,Fresno State,1969,2023
+87,Furman,1902,1981
+88,George Washington,1908,1966
+89,Georgetown,1902,1950
+90,Georgia,1902,2023
+91,Georgia Pre-Flight,1942,1943
+92,Georgia Southern,2014,2023
+93,Georgia State,2013,2023
+94,Georgia Tech,1902,2023
+95,Gonzaga,1922,1941
+96,Grambling State,1977,1977
+97,Great Lakes Navy,1918,1945
+98,Grinnell,1899,1936
+99,Hamilton,1907,1907
+100,Hampden-Sydney,1922,1940
+101,Hardin-Simmons,1939,1962
+102,Harvard,1875,1981
+103,Haskell,1902,1916
+104,Haverford,1891,1891
+105,Hawaii,1971,2023
+106,Holy Cross,1899,1981
+107,Houston,1949,2023
+108,Idaho,1917,2017
+109,Idaho State,1944,1944
+110,Illinois,1892,2023
+111,Illinois State,1975,1985
+112,Indiana,1899,2023
+113,Indiana State,1975,1985
+114,Iowa,1899,2023
+115,Iowa Pre-Flight,1942,1944
+116,Iowa State,1895,2023
+117,Jackson State,1977,1977
+118,Jacksonville Naval Air Station,1942,1942
+119,Jacksonville State,2023,2023
+120,James Madison,2022,2023
+121,Kansas,1901,2023
+122,Kansas State,1912,2023
+123,Kent State,1962,2023
+124,Kentucky,1915,2023
+125,Knox,1899,1905
+126,Lafayette,1882,1946
+127,Lake Forest,1893,1899
+128,Lamar,1973,1981
+129,Lawrence,1905,1905
+130,Lehigh,1884,1965
+131,Liberty,2018,2023
+132,Lombard,1903,1903
+133,Long Beach State,1969,1991
+134,Louisiana Lafayette,1973,2023
+135,Louisiana Tech,1975,2023
+136,Louisiana-Monroe,1975,2023
+137,Louisville,1962,2023
+138,Loyola (LA),1934,1936
+139,Loyola Marymount,1933,1951
+140,Louisiana-state,1902,2023
+141,Lubbock Field,1944,1944
+142,Maine,1904,1905
+143,Manhattan,1936,1942
+144,March Field,1943,1944
+145,Mare Island Marines,1917,1918
+146,Marquette,1927,1960
+147,Marshall,1962,2023
+148,Maryland,1917,2023
+149,Maryville (TN),1906,1907
+150,Massachusetts,1882,2023
+151,McNeese State,1975,1981
+152,Memphis,1960,2023
+153,Mercer,1909,1936
+154,Merchant Marine,1945,1947
+155,Miami (FL),1936,2023
+156,Miami (OH),1962,2023
+157,Michigan,1881,2023
+158,Michigan State,1918,2023
+159,Middle Tennessee State,1999,2023
+160,Millsaps,1924,1924
+161,Minnesota,1892,2023
+162,Mississippi College,1911,1924
+163,Mississippi State,1902,2023
+164,Mississippi Valley State,1977,1977
+165,Missouri,1901,2023
+166,MIT,1882,1899
+167,Montana,1917,1962
+168,Montana State,1923,1947
+169,Nashville,1904,1904
+170,Navy,1891,2023
+171,Nebraska,1900,2023
+172,Nevada,1946,2023
+173,Nevada-Las Vegas,1978,2023
+174,New Hampshire,1904,1905
+175,New Mexico,1931,2023
+176,New Mexico State,1931,2023
+177,New York University,1927,1952
+178,Newberry,1914,1925
+179,Norman Naval Air Station,1944,1944
+180,North Carolina,1902,2023
+181,North Carolina Pre-Flight,1942,1943
+182,North Carolina State,1902,2023
+183,North Texas,1953,2023
+184,Northern Arizona,1931,1952
+185,Northern Colorado,1923,1937
+186,Northern Illinois,1968,2023
+187,Northwestern,1892,2023
+188,Northwestern State,1976,1979
+189,Notre Dame,1899,2023
+190,Oglethorpe,1919,1925
+191,Ohio,1962,2023
+192,Ohio State,1904,2023
+193,Oklahoma,1903,2023
+194,Oklahoma State,1914,2023
+195,Old Dominion,2014,2023
+196,Mississippi,1902,2023
+197,Oregon,1916,2023
+198,Oregon State,1916,2023
+199,Pacific,1943,1995
+200,Penn State,1889,2023
+201,Pennsylvania,1876,1981
+202,Phillips,1920,1921
+203,Pittsburgh,1905,2023
+204,Portland,1946,1947
+205,Prairie View A&M,1977,1977
+206,Presbyterian,1915,1945
+207,Princeton,1869,1981
+208,Purdue,1892,2023
+209,Quantico Marines,1965,1965
+210,Randolph Field,1944,1944
+211,Regis (CO),1924,1930
+212,Rhodes,1939,1939
+213,Rice,1914,2023
+214,Richmond,1909,1983
+215,Rutgers,1869,2023
+216,Saint Louis,1907,1949
+217,Saint Mary's (CA),1930,1950
+218,Saint Mary's (CA) Pre-Flight,1942,1944
+219,Sam Houston State,2023,2023
+220,Samford,1907,1924
+221,San Diego State,1969,2023
+222,San Francisco,1932,1951
+223,San Jose State,1950,2023
+224,Santa Clara,1932,1952
+225,Second Air Force,1944,1944
+226,Sewanee,1902,1941
+227,Simpson,1902,1903
+228,Southern Methodist,1916,2023
+229,South Alabama,2012,2023
+230,South Carolina,1903,2023
+231,South Florida,2000,2023
+232,Southern,1977,1977
+233,Southern Illinois,1972,1985
+234,Southern Mississippi,1963,2023
+235,Southwestern (TX),1910,1921
+236,Spring Hill,1919,1922
+237,Springfield,1891,1892
+238,Stanford,1918,2023
+239,Stevens,1872,1891
+240,Swarthmore,1888,1912
+241,Syracuse,1899,2023
+242,Tampa,1966,1974
+243,Temple,1930,2023
+244,Tennessee,1902,2023
+245,Tennessee Medical College,1904,1904
+246,Tennessee State,1977,1977
+247,Texas,1902,2023
+248,Texas A&M,1903,2023
+249,Texas Christian,1903,2023
+250,Texas Southern,1977,1977
+251,Texas State,2012,2023
+252,Texas Tech,1932,2023
+253,Texas-Arlington,1971,1981
+254,The Citadel,1909,1981
+255,Toledo,1962,2023
+256,Trinity (CT),1887,1901
+257,Troy,2001,2023
+258,Tufts,1877,1905
+259,Tulane,1902,2023
+260,Tulsa,1917,2023
+261,Alabama Birmingham,1996,2023
+262,Central Florida,1996,2023
+263,UCLA,1928,2023
+264,Union (NY),1894,1902
+265,Southern California,1922,2023
+266,Utah,1905,2023
+267,Utah State,1912,2023
+268,Texas El Paso,1935,2023
+269,Texas San Antonio,2012,2023
+270,Vanderbilt,1902,2023
+271,Vermont,1901,1905
+272,Villanova,1905,1980
+273,Virginia,1890,2023
+274,Virginia Military Institute,1904,1981
+275,Virginia Tech,1902,2023
+276,Wabash,1904,1905
+277,Wake Forest,1908,2023
+278,Washburn,1905,1940
+279,Washington,1916,2023
+280,Washington & Jefferson,1905,1934
+281,Washington & Lee,1907,1953
+282,Washington (MO),1902,1942
+283,Washington State,1917,2023
+284,Wesleyan (CT),1882,1905
+285,West Texas State,1941,1985
+286,West Virginia,1909,2023
+287,West Virginia Wesleyan,1913,1916
+288,Western Carolina,1977,1981
+289,Western Kentucky,2009,2023
+290,Western Michigan,1962,2023
+291,Western State,1924,1937
+292,Whitman,1923,1924
+293,Wichita State,1945,1986
+294,William & Mary,1922,1983
+295,Williams,1886,1906
+296,Wisconsin,1892,2023
+297,Wofford,1914,1936
+298,WPI,1888,1893
+299,Wyoming,1905,2023
+300,Xavier,1935,1973
+301,Yale,1872,1981
