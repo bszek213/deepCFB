@@ -15,6 +15,11 @@ from tqdm import tqdm
 import yaml
 # from cfbd.rest import ApiException
 
+def read_api_key_from_yaml(file_path):
+    with open(file_path, 'r') as file:
+        data = yaml.safe_load(file)
+    return data['api_key']['Authorization']
+
 def get_teams_year(year_min,year_max):
     #Read in from csv
     teams_save = []
@@ -38,7 +43,7 @@ def get_teams_year(year_min,year_max):
 
 def html_to_df_web_scrape(URL,team,year):
     configuration = cfbd.Configuration()
-    configuration.api_key['Authorization'] = 'UK4ikHBmxuHDyMlNngTZS8sokyl8Kr4FExP2NRb9G8qaFOUrUhX3xy6+OxQv4oEX'
+    configuration.api_key['Authorization'] = read_api_key_from_yaml('api_key.yaml')
     configuration.api_key_prefix['Authorization'] = 'Bearer'
     api_instance = cfbd.GamesApi(cfbd.ApiClient(configuration))
     api_game = cfbd.GamesApi(cfbd.ApiClient(configuration))
