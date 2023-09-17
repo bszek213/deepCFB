@@ -16,13 +16,13 @@ python3 deep_learn.py notest #Predict the outcomes between two teams
 ```bash
 # Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
 =======================================
-Ensemble Accuracy out of 23 teams: 0.9565217391304348
-DNN Accuracy out of 23 teams: 0.9565217391304348
-LinRegress Accuracy out of 23 teams: 0.9130434782608695
-RandomForest Accuracy out of 23 teams: 0.9565217391304348
-Rolling median 2 Accuracy out of 23 teams: 0.8695652173913043
-MLP Accuracy out of 23 teams: 0.9565217391304348
-XGB Accuracy out of 23 teams: 0.9565217391304348
+Ensemble Accuracy out of 25 teams: 0.92
+DNN Accuracy out of 25 teams: 0.92
+LinRegress Accuracy out of 25 teams: 0.92
+RandomForest Accuracy out of 25 teams: 0.92
+Rolling median 2 Accuracy out of 25 teams: 0.92
+MLP Accuracy out of 25 teams: 0.76
+XGB Accuracy out of 25 teams: 0.92
 ```
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
