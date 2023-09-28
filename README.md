@@ -5,6 +5,12 @@ My DNN has an accuracy of 84% on the validation data. I use multi-class learning
 to predict next week's feature data. I used multiple models to achieve this. Data are from Sports-reference.com (https://www.sports-reference.com/cfb/) and 
 cfbd (https://collegefootballdata.com/). The .pkl files I could not update to GitHub due to size issues.
 
+THE BIG PROBLEM:
+-this is trained on every college football teams. The models have bias from the bad teams, thus every top 25 team
+it assums that they are just going to win every game, as their feature values are substantially higher than the bad teams.
+Therefore, when a bad team wins with "low" feature scores, and a top 25 team wins with "high" feature scores, the model assumes 
+then that if the good team for a week plays bad, they will still win.
+
 ## Usage
 
 ```bash
@@ -21,7 +27,7 @@ DNN Accuracy out of 25 teams: 0.92
 LinRegress Accuracy out of 25 teams: 0.92
 RandomForest Accuracy out of 25 teams: 0.92
 Rolling median 2 Accuracy out of 25 teams: 0.92
-MLP Accuracy out of 25 teams: 0.76
+MLP Accuracy out of 25 teams: 0.8
 XGB Accuracy out of 25 teams: 0.92
 ```
 ## Contributing

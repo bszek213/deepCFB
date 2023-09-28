@@ -20,11 +20,13 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
 from collect_data import get_teams_year, html_to_df_web_scrape
 from tqdm import tqdm
-from numpy import nan, array, reshape
+from numpy import nan, array, reshape, arange
 from xgboost import XGBRFRegressor, XGBRFClassifier
 from catboost import CatBoostRegressor
 import matplotlib.pyplot as plt
 from sys import argv
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 def create_model_classifier(hp,shape_input):
     #Feature model
@@ -252,7 +254,58 @@ class deepCfb():
                 print("Best Score Classifier: ", grid_search.best_score_)
                 with open('classifier_xgb.pkl', 'wb') as file:
                         dump(grid_search, file)
-         
+
+    def random_forest_class(self):
+        if not exists("classifier_rf.pkl"):
+            param_grid = {
+                'n_estimators': [300, 400, 500],
+                'max_depth': [None, 5, 10, 20],
+                'min_samples_split': [2, 5, 10],
+                'min_samples_leaf': [1, 2, 4],
+            }
+
+            # Train the Random Forest model
+            grid_search = GridSearchCV(estimator=RandomForestClassifier(), 
+                                    param_grid=param_grid, 
+                                    cv=3, n_jobs=5, 
+                                    verbose=2,
+                                    scoring='accuracy')
+
+            # Fit the GridSearchCV object to the training data
+            grid_search.fit(self.x_train, self.y_train)
+
+            # Print the best parameters and best score
+            print("Best Parameters Classifier: ", grid_search.best_params_)
+            print("Best Score Classifier: ", grid_search.best_score_)
+            with open('classifier_rf.pkl', 'wb') as file:
+                dump(grid_search, file)
+
+
+    
+    def logistic_regression_class(self):
+        if not exists("classifier_logistic_regression.pkl"):
+            param_grid = {
+                'penalty': ['l1', 'l2'],
+                'C': [0.001, 0.01, 0.1, 1, 10, 100],
+            }
+
+            # Train the Logistic Regression model
+            # Create the GridSearchCV object
+            grid_search = GridSearchCV(estimator=LogisticRegression(), 
+                                    param_grid=param_grid, 
+                                    cv=3, n_jobs=1, 
+                                    verbose=2,
+                                    scoring='accuracy')
+
+            # Fit the GridSearchCV object to the training data
+            grid_search.fit(self.x_train, self.y_train)
+
+            # Print the best parameters and best score
+            print("Best Parameters Classifier: ", grid_search.best_params_)
+            print("Best Score Classifier: ", grid_search.best_score_)
+            with open('classifier_logistic_regression.pkl', 'wb') as file:
+                dump(grid_search, file)
+   
     def deep_learn_features(self):
         #drop target label
         self.x_regress.drop(columns=self.classifier_drop,inplace=True)
@@ -473,8 +526,9 @@ class deepCfb():
         esnemble_out = 0
         rolling_out_2 = 0
         rolling_out_3 = 0
+        save_over_teams = []
 
-        for abv in tqdm(sorted(teams_list)):
+        for abv in tqdm(teams_list):
             try:
                 # if keyboard.is_pressed('q') and keyboard.is_pressed('w'):
                 #     print('Exiting for loop early')
@@ -602,10 +656,20 @@ class deepCfb():
                 print(f'MLP Accuracy out of {count_teams} teams: {mlp_out / count_teams}')
                 # print(f'CAT Accuracy out of {count_teams} teams: {cat_out / count_teams}')
                 print(f'XGB Accuracy out of {count_teams} teams: {xgb_out / count_teams}')
+                save_over_teams.append(esnemble_out / count_teams)
 
+                #plot correct over teams
+                x_data = [i for i in range(count_teams)]
+                if count_teams != 1:
+                    plt.plot(x_data,save_over_teams,color='tab:blue',marker='*')
+                    plt.xlabel('team count')
+                    plt.ylabel('porportion correct')
+                    plt.show(block=False)
+                    plt.pause(0.1)
                 count_teams += 1
             except Exception as e:
                 print(f'NO data found for {abv}, Error: {e}')
+        
     
     def predict_teams(self):
         #Read in models
@@ -617,6 +681,10 @@ class deepCfb():
                 lin_model = load(file)
         with open('feature_mlp_model.pkl', 'rb') as file:
                 mlp_model = load(file)
+        with open('classifier_rf.pkl', 'rb') as file:
+                rf_class  = load(file)
+        with open('classifier_logistic_regression.pkl', 'rb') as file:
+                log_class  = load(file)
 
         #predict two teams
         while True:
@@ -679,12 +747,37 @@ class deepCfb():
                 prediction_median_lin_1 = model.predict(next_game_features_lin_1)
                 prediction_median_mlp_1 = model.predict(next_game_features_mlp_1)
                 prediction_median_1 = model.predict(rolling_features_1)
-
+                #classifier rf
+                prediction_median_rf_1_rf = rf_class.predict(next_game_features_rf_1)
+                prediction_median_dnn_1_rf = rf_class.predict(dnn_list_1)
+                prediction_median_lin_1_rf = rf_class.predict(next_game_features_lin_1)
+                prediction_median_mlp_1_rf = rf_class.predict(next_game_features_mlp_1)
+                prediction_median_1_rf = rf_class.predict(rolling_features_1)
+                #classifier logistic regression
+                prediction_median_rf_1_log_class = log_class.predict(next_game_features_rf_1)
+                prediction_median_dnn_1_log_class = log_class.predict(dnn_list_1)
+                prediction_median_lin_1_log_class = log_class.predict(next_game_features_lin_1)
+                prediction_median_mlp_1_log_class = log_class.predict(next_game_features_mlp_1)
+                prediction_median_1_log_class = log_class.predict(rolling_features_1)
+                
+                #DNN
                 prediction_median_rf_2 = model.predict(next_game_features_rf_2)
                 prediction_median_dnn_2 = model.predict(dnn_list_2)
                 prediction_median_lin_2 = model.predict(next_game_features_lin_2)
                 prediction_median_mlp_2 = model.predict(next_game_features_mlp_2)
                 prediction_median_2 = model.predict(rolling_features_2)
+                #classifier rf
+                prediction_median_rf_2_rf = rf_class.predict(next_game_features_rf_2)
+                prediction_median_dnn_2_rf = rf_class.predict(dnn_list_2)
+                prediction_median_lin_2_rf = rf_class.predict(next_game_features_lin_2)
+                prediction_median_mlp_2_rf = rf_class.predict(next_game_features_mlp_2)
+                prediction_median_2_rf = rf_class.predict(rolling_features_2)
+                #classifier logistic regression
+                prediction_median_rf_2_log_class = log_class.predict(next_game_features_rf_2)
+                prediction_median_dnn_2_log_class = log_class.predict(dnn_list_2)
+                prediction_median_lin_2_log_class = log_class.predict(next_game_features_lin_2)
+                prediction_median_mlp_2_log_class = log_class.predict(next_game_features_mlp_2)
+                prediction_median_2_log_class = log_class.predict(rolling_features_2)
 
                 num_true_conditions_team1 = 0
                 num_true_conditions_team2 = 0
@@ -728,6 +821,14 @@ class deepCfb():
                     print(f'{self.team_1} Predicted Winning Probability: {round(prediction_median_lin_1[0][0]*100,2)}% LinRegress, {round(prediction_median_mlp_1[0][0]*100,2)}% MLP, {round(prediction_median_rf_1[0][0]*100,2)}% RF, {round(prediction_median_dnn_1[0][0]*100,2)}% DNN')  
                     print(Fore.GREEN + Style.BRIGHT + f'{self.team_2} Predicted Winning Probability: {round(prediction_median_lin_2[0][0]*100,2)}% LinRegress, {round(prediction_median_mlp_2[0][0]*100,2)}% MLP {round(prediction_median_rf_2[0][0]*100,2)}% RF, {round(prediction_median_dnn_2[0][0]*100,2)}% DNN' + Style.RESET_ALL)
                 
+                #RF Classifier
+                print(Fore.WHITE + Style.BRIGHT +f'{self.team_1} RF classifier Predicted Winning Probability: {prediction_median_rf_1_rf} RF, {prediction_median_dnn_1_rf} DNN, {prediction_median_lin_1_rf} LinRegress, {prediction_median_mlp_1_rf} MLP, {prediction_median_1_rf} Rolling average'+ Style.RESET_ALL)
+                print(Fore.WHITE + Style.BRIGHT +f'{self.team_2} RF classifier Predicted Winning Probability: {prediction_median_rf_2_rf} RF, {prediction_median_dnn_2_rf} DNN, {prediction_median_lin_2_rf} LinRegress, {prediction_median_mlp_2_rf} MLP, {prediction_median_2_rf} Rolling average'+ Style.RESET_ALL)
+
+                #Logistic Classifier
+                print(Fore.WHITE + Style.BRIGHT +f'{self.team_1} Logistic classifier Predicted Winning Probability: {prediction_median_rf_1_log_class} RF, {prediction_median_dnn_1_log_class} DNN, {prediction_median_lin_1_log_class} LinRegress, {prediction_median_mlp_1_log_class} MLP, {prediction_median_1_log_class} Rolling average'+ Style.RESET_ALL)
+                print(Fore.WHITE + Style.BRIGHT +f'{self.team_2} Logistic classifier Predicted Winning Probability: {prediction_median_rf_2_log_class} RF, {prediction_median_dnn_2_log_class} DNN, {prediction_median_lin_2_log_class} LinRegress, {prediction_median_mlp_2_log_class} MLP, {prediction_median_2_log_class} Rolling average'+ Style.RESET_ALL)
+
                 #running averages
                 if round(prediction_median_1[0][0]*100, 2) > round(prediction_median_2[0][0]*100, 2):
                     print(Fore.GREEN + Style.BRIGHT + f'{self.team_1} Predicted Winning Probability Rolling median (3): {round(prediction_median_1[0][0]*100, 2)} %' + Style.RESET_ALL)
@@ -741,6 +842,8 @@ class deepCfb():
         self.split()
         self.dnn_classifier()
         self.xgb_class()
+        self.random_forest_class()
+        self.logistic_regression_class()
         self.deep_learn_features()
         if argv[1] == 'test':
             self.test_forecast()
