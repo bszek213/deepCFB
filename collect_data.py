@@ -430,7 +430,15 @@ def html_to_df_web_scrape(URL,team,year):
 def get_teams():
         year_list_find = []
         year_list = [2023,2022,2021,2019,2018,2017,2016,2015]#,2014,2013,,2012,2011,2010,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]
-        all_teams = get_teams_year(min(year_list),2023)
+        
+        #all teams with data
+        # all_teams = get_teams_year(min(year_list),2023)
+        #select only the top 30 teams
+        with open('top_30_teams.txt','r') as file:
+             content = file.read()
+        all_teams = content.split("\n")
+        all_teams = [string for string in all_teams if string.strip() != ""]
+
         if exists(join(getcwd(),'year_count.yaml')):
             with open(join(getcwd(),'year_count.yaml')) as file:
                 year_counts = yaml.load(file, Loader=yaml.FullLoader)

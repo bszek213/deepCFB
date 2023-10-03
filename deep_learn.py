@@ -7,26 +7,28 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 from pickle import dump, load
 from colorama import Fore, Style
 from sklearn.linear_model import LinearRegression
 from keras_tuner.tuners import RandomSearch
+from keras_tuner import Objective
 from keras.layers import Input, Dense, Dropout, BatchNormalization
-from keras.optimizers import Adam, RMSprop
+from keras.optimizers import Adam, RMSprop, SGD
 from keras.models import Model
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
 from collect_data import get_teams_year, html_to_df_web_scrape
 from tqdm import tqdm
-from numpy import nan, array, reshape, arange
+from numpy import nan, array, reshape, arange, isnan
 from xgboost import XGBRFRegressor, XGBRFClassifier
 from catboost import CatBoostRegressor
 import matplotlib.pyplot as plt
 from sys import argv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+# from tensorflow.keras.regularizers import l2
 
 def create_model_classifier(hp,shape_input):
     #Feature model
@@ -57,26 +59,64 @@ def create_model_classifier(hp,shape_input):
     return model
 
 def build_classifier(hp):
-        #classifier model
         model = keras.Sequential()
-        
-        # Tune the number of nodes for each layer
-        for i in range(hp.Int('num_layers', 2, 10)):
-            model.add(layers.Dense(units=hp.Int('units_' + str(i), 8, 128, step=16),
-                                   activation='relu'))
-            model.add(layers.Dropout(rate=hp.Float('dropout_' + str(i), 0.2, 0.5, step=0.1)))
-            model.add(layers.BatchNormalization())
-        
-        last_activation = hp.Choice('last_activation', ['sigmoid', 'softmax', 'tanh'])
-        model.add(layers.Dense(1, activation=last_activation))
-        
-        # Tune the learning rate for the optimizer
-        optimizer = Adam(learning_rate=hp.Choice('learning_rate', [1e-2, 1e-3, 1e-4]))
 
-        model.compile(optimizer=optimizer,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'])
+        # Tune the number of layers
+        num_layers = hp.Int('num_layers', min_value=1, max_value=5, step=1)
+        
+        for i in range(num_layers):
+            # Tune the number of units in each layer
+            units = hp.Int(f'units_layer_{i}', min_value=8, max_value=512, step=32)
+            
+            # Tune the activation function
+            activation = hp.Choice(f'activation_layer_{i}', values=['relu', 'tanh', 'sigmoid'])
+            
+            model.add(layers.Dense(units=units, activation=activation))
+            
+            # Tune dropout rate
+            dropout_rate = hp.Float(f'dropout_layer_{i}', min_value=0.0, max_value=0.5, step=0.1)
+            model.add(layers.Dropout(rate=dropout_rate))
+        
+        # Add the output layer with sigmoid activation for binary classification
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        # Tune the optimizer
+        optimizer = hp.Choice('optimizer', values=['adam', 'rmsprop', 'sgd'])
+        learning_rate = hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')
+
+        if optimizer == 'adam':
+            model.compile(optimizer=Adam(learning_rate=learning_rate),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+        elif optimizer == 'rmsprop':
+            model.compile(optimizer=RMSprop(learning_rate=learning_rate),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+        else:
+            model.compile(optimizer=SGD(learning_rate=learning_rate),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+
         return model
+
+def build_model_regressor_points(hp, input_shape):
+    model = keras.Sequential()
+    model.add(layers.Input(shape=input_shape))
+    
+    # Hyperparameter search space for hidden layers
+    for i in range(hp.Int('num_layers', min_value=1, max_value=5)):
+        model.add(layers.Dense(units=hp.Int(f'units_{i}', min_value=32, max_value=256, step=32),
+                               activation='relu'))
+    
+    model.add(layers.Dense(2, activation='linear'))  # Output layer for two scores
+    
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])),
+        loss='mean_squared_error',
+        metrics=['mae']
+    )
+    
+    return model
 
 class deepCfb():
     def __init__(self):
@@ -142,6 +182,45 @@ class deepCfb():
         #split data
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.x_data, self.y, train_size=0.8)
 
+    def dnn_regressor(self):
+        all_data = read_csv(join(getcwd(),'all_data.csv'))
+        all_data = concat([all_data, read_csv(join(getcwd(),'all_data_2023.csv'))])
+        
+        for col in all_data.columns:
+            if 'Unnamed' in col:
+                all_data.drop(columns=col,inplace=True)
+
+        all_data[['team_1_score', 'team_2_score']] = all_data['game_result'].str.extract(r'(\d+)-(\d+)').astype(int)
+        self.regression_drop = ['team_1_score', 'team_2_score','game_result','game_loc']
+        X = all_data.drop(columns=self.regression_drop)
+        y = all_data[['team_1_score', 'team_2_score']]
+        
+        self.regress_scaler = MinMaxScaler(feature_range=(0,1))
+        X_std = self.regress_scaler.fit_transform(X)
+        #FA
+        self.regress_fa = FactorAnalysis(n_components=self.manual_comp)
+        X_fa = self.regress_fa.fit_transform(X_std)
+        if not exists('keras_regressor.h5'):
+                
+            x_final = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
+            
+            X_train, X_test, y_train, y_test = train_test_split(x_final, y, test_size=0.2, random_state=42)
+
+            # Create a tuner
+            input_shape = X_train.shape[1]
+            tuner = RandomSearch(
+                lambda hp: build_model_regressor_points(hp, input_shape),  # Pass input_shape to the build_model function
+                objective='val_mae',#Objective("mae", direction="min"),
+                max_trials=50,
+                directory='regressor'
+            )
+            tuner.search(X_train, y_train, validation_data=(X_test, y_test), epochs=75)
+            best_model = tuner.get_best_models(num_models=1)[0]
+            best_model.fit(X_train, y_train, epochs=100, batch_size=128, verbose=2,
+                            validation_data=(X_test, y_test))
+        
+            best_model.save('keras_regressor.h5')
+
     def dnn_classifier(self):
         if exists('keras_classifier.h5'):
             self.dnn_class = keras.models.load_model('keras_classifier.h5')
@@ -190,7 +269,7 @@ class deepCfb():
             tuner = RandomSearch(
                 build_classifier,
                 objective='val_accuracy',
-                max_trials=75,  # Number of combinations to try
+                max_trials=125,  # Number of combinations to try
                 directory='classifier',  # Directory to store the results
                 project_name='classifier_project'
             )
@@ -200,12 +279,13 @@ class deepCfb():
             tuner.search(self.x_train, self.y_train, 
                         epochs=100, batch_size=128, 
                         validation_data=(self.x_test, self.y_test),
-                        callbacks=[early_stop])
+                        callbacks=[early_stop]) 
 
             #get best model from search
-            early_stop = EarlyStopping(monitor='val_loss', patience=10, mode='min', verbose=1)
-            best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-            best_model = tuner.hypermodel.build(best_hps) 
+            # early_stop = EarlyStopping(monitor='val_loss', patience=10, mode='min', verbose=1)
+            # best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+            # best_model = tuner.hypermodel.build(best_hps) 
+            best_model = tuner.get_best_models(1)[0]
             best_model.fit(self.x_train, self.y_train, epochs=100, batch_size=128, verbose=2,
                         validation_data=(self.x_test, self.y_test),
                         callbacks=[early_stop])
@@ -670,6 +750,54 @@ class deepCfb():
             except Exception as e:
                 print(f'NO data found for {abv}, Error: {e}')
         
+    def test_point_forecast(self):
+         #Select certain teams
+        with open('teams_played_this_week.txt','r') as file:
+             content = file.read()
+        teams_list = content.split("\n")
+        teams_list = [string for string in teams_list if string.strip() != ""]
+
+        save_betting_teams = []
+        model = keras.models.load_model('keras_regressor.h5')
+
+        for abv in tqdm(teams_list):
+            print('')#tqdm thing
+            print(f'current team: {abv}')
+            # team = all_teams(abv)
+            str_combine = 'https://www.sports-reference.com/cfb/schools/' + abv.lower() + '/' + str(2023) + '/gamelog/'
+            all_data = html_to_df_web_scrape(str_combine,abv.lower(),2023)
+
+            team_1_actual, team_1_predict = [], []
+            team_2_actual, team_2_predict = [], []
+            for col in all_data.columns:
+                if 'Unnamed' in col:
+                    all_data.drop(columns=col,inplace=True)
+
+            all_data[['team_1_score', 'team_2_score']] = all_data['game_result'].str.extract(r'(\d+)-(\d+)').astype(int)
+        
+            X = all_data.drop(columns=self.regression_drop)
+            y = all_data[['team_1_score', 'team_2_score']]
+
+            X_std = self.regress_scaler.transform(X)
+            X_fa = self.regress_fa.transform(X_std)
+        
+            x_final = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
+
+            rolling_features_2 = x_final.rolling(2).median().iloc[-2:-1]
+
+            pts_output = model.predict(rolling_features_2)
+
+            team_1_out, team_2_out = pts_output[0][0], pts_output[0][1]
+            team_1_actual.append(y['team_1_score'].iloc[-1])
+            team_1_predict.append(pts_output[0][0])
+            team_2_actual.append(y['team_2_score'].iloc[-1])
+            team_2_predict.append(pts_output[0][1])
+            
+            print(f'MAPE for {abv}')
+            print(pts_output)
+            print(y.iloc[-1])
+        print(f'team1 mape: {mean_absolute_percentage_error(team_1_actual,team_1_predict)}')
+        print(f'team2 mape: {mean_absolute_percentage_error(team_2_actual,team_2_predict)}')
     
     def predict_teams(self):
         #Read in models
@@ -841,11 +969,13 @@ class deepCfb():
     def run_analysis(self):
         self.split()
         self.dnn_classifier()
+        self.dnn_regressor()
         self.xgb_class()
         self.random_forest_class()
         self.logistic_regression_class()
         self.deep_learn_features()
         if argv[1] == 'test':
+            self.test_point_forecast()
             self.test_forecast()
         self.predict_teams()
 

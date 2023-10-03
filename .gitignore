@@ -11,6 +11,7 @@ logs/
 feature_xgb.pkl
 feature_random_forest.pkl
 classifier/
+regressor/
 feature_linear_regression.pkl
 feature_mlp_model.pkl
 classifier_xgb.pkl
