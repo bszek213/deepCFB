@@ -427,6 +427,170 @@ def html_to_df_web_scrape(URL,team,year):
     # input()
     return df.dropna()
 
+
+def data_for_srs(URL,team,year):
+    # URL EXAMPLE: URL = "https://www.sports-reference.com/cfb/schools/georgia/2021/gamelog/"
+    while True:
+        try:
+            page = requests.get(URL)
+            soup = BeautifulSoup(page.content, "html.parser")
+            break
+        except:
+            print('HTTPSConnectionPool(host="www.sports-reference.com", port=443): Max retries exceeded. Retry in 10 seconds')
+            sleep(10)
+    table = soup.find(id="div_offense")
+    tbody = table.find('tbody')
+    tr_body = tbody.find_all('tr')
+    game_result = []
+    save_opponents = []
+    for trb in tr_body:
+        for td in trb.find_all('td'):
+            if td.get('data-stat') == "opp_name":
+                if '*' in td.get_text():
+                    text_data = td.get_text().replace('*','')
+                else:
+                    text_data = td.get_text()
+                # print('opp:',text_data)
+                # print('team:',team)
+                # if text_data == 'Miami (FL)':
+                #     text_data = 'Miami'
+                # elif text_data == 'Mississippi':
+                #     text_data = 'Ole Miss'
+                # elif text_data == 'Louisiana-state':
+                #     text_data = 'LSU'
+                # elif text_data == 'Louisiana State':
+                #     text_data = 'LSU'
+                # elif text_data == 'Nevada-Las Vegas':
+                #     text_data = 'UNLV'
+                # elif text_data == 'Bowling Green State':  
+                #     text_data = 'Bowling Green'
+                # elif text_data == 'UTSA':
+                #     text_data = 'UT San Antonio'
+                # elif text_data   == 'Brigham Young':
+                #     text_data = 'BYU'
+                # elif text_data   == 'Southern California':
+                #     text_data = 'USC'
+                # elif text_data   == 'Massachusetts': 
+                #     text_data = 'Umass'
+                # elif text_data   == 'Central Florida': 
+                #     text_data = 'UCF'
+                # elif text_data   == 'North Carolina State': 
+                #     text_data = 'NC State'
+                # elif text_data == 'Alabama-Birmingham':
+                #     text_data = 'UAB'
+                # elif text_data == 'Southern Methodist':
+                #     text_data = 'SMU'
+                # elif text_data == 'Middle Tennessee State':
+                #     text_data = 'Middle Tennessee'
+                # elif text_data == 'San Jose State':
+                #     text_data = 'San José State'
+                # elif text_data == 'Hawaii': 
+                #     text_data = "Hawai'i"
+                # elif text_data == 'St. Francis (PA)':
+                #     text_data = 'St Francis (PA)'
+                # elif text_data == 'Long Island':
+                #     text_data = 'Long Island University' 
+                # elif text_data == 'Grambling State':
+                #     text_data = 'Grambling'
+                # elif text_data == 'Virginia Military Institute': 
+                #     text_data = 'VMI'
+                # elif text_data == 'Nicholls State': 
+                #     text_data = 'Nicholls'
+                # elif text_data == 'McNeese State': 
+                #     text_data = 'McNeese'
+                # elif text_data == 'Central Connecticut State': 
+                #     text_data = 'Central Connecticut'
+                # elif text_data == 'Prairie View A&M': 
+                #     text_data = 'Prairie View'
+                # elif text_data == 'California-Davis': 
+                #     text_data = 'UC Davis'
+                # elif text_data == 'Tennessee-Martin': 
+                #     text_data = 'UT Martin'
+                # elif text_data == 'Presbyterian': 
+                #     text_data = 'Presbyterian College'
+                # else:
+                #     text_data = text_data
+                # if '-' in text_data:
+                #     text_data = text_data.replace('-',' ')
+                # if '-' in team:
+                #     team = team.replace('-',' ')
+                #Execptions since no one can chose a syntax and stick to it
+                if text_data == 'Arkansas Pine Bluff':
+                    text_data = 'Arkansas-Pine Bluff'
+                if text_data == 'Bethune Cookman':
+                    text_data = 'Bethune-Cookman'
+                if text_data == 'Gardner Webb':
+                    text_data = 'Gardner-Webb'
+                #Fix team names
+                # if team == 'alabama birmingham':
+                #     team = 'UAB'
+                # if team == 'bowling green state':
+                #     team = 'Bowling Green'
+                # if team == 'brigham young':
+                #     team = 'BYU'
+                # if team == 'central florida':
+                #     team = 'UCF'
+                # if team == 'hawaii':
+                #     team = "Hawai'i"
+                # if team == 'louisiana lafayette':
+                #     team = "louisiana"
+                # if team == 'louisiana state':
+                #     team = "LSU"
+                # if team == 'massachusetts':
+                #     team = "Umass"
+                # if team == 'southern methodist':
+                #     team = "SMU"
+                # if team == 'texas christian':
+                #     team = "TCU" 
+                # if team == 'texas san antonio':
+                #     team = "UTSA"
+                # if team == 'texas el paso':
+                #     team = "UTEP"
+                # if team == 'nevada las vegas':
+                #     team = "UNLV"
+                # if team == 'southern california':
+                #     team = "USC"
+                # if team == 'miami oh':
+                #     team = "miami (oh)"
+                # if team == 'miami fl':
+                #     team = "Miami"
+                # if team == 'texas am':
+                #     team = "texas a&m"
+                # if team == 'middle tennessee state':
+                #     team = "middle tennessee"
+                # if team == 'mississippi':
+                #     team = "ole miss"
+                # if team == 'north carolina state':
+                #     team = "nc state"
+                # if team == 'san jose state': 
+                #     team = 'San José State'
+                # if team == 'texas-san-antonio':
+                #     team = 'UT San Antonio'
+                # if team == 'UTSA':
+                #     team = 'UT San Antonio'
+                if '*' in text_data:
+                    text_data = text_data.replace('*','')
+                print('opp:',text_data)
+                save_opponents.append(text_data)
+                print('team:',team)
+                # else:
+                #     havoc.append(nan)
+                #     start_field.append(nan)
+                #     scoring_opp.append(nan)
+                #     start_field.append(nan)
+                #     power_success.append(nan)
+                #     second_level_yards.append(nan)
+                #     open_field_yards.append(nan)
+                #     line_yards.append(nan)
+            if td.get('data-stat') == "game_result":
+                game_result.append(td.get_text())
+        sleep(2)
+    df = DataFrame(list(game_result),
+                columns =['game_result'])
+    # print(df)
+    # input()
+    return df.dropna(), save_opponents
+
 def get_teams():
         year_list_find = []
         year_list = [2023,2022,2021,2019,2018,2017,2016,2015]#,2014,2013,,2012,2011,2010,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]

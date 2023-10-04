@@ -30,5 +30,13 @@ Rolling median 2 Accuracy out of 25 teams: 0.92
 MLP Accuracy out of 25 teams: 0.8
 XGB Accuracy out of 25 teams: 0.92
 ```
+
+### My Simple Rating System
+I created a simple rating system that uses the median point differential of one team and subtracts that value
+by all median point differential of all other teams they played against. The only caveat is that I only count 
+the point differentials of the other teams when they lose, as I want to be able to assess how much each team is 
+losing by. The theory behind this is that good teams will not lose often and when they do it will most likely be 
+by small margins
+![](https://github.com/bszek213/deepCFB/blob/main/my_srs.png) 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
