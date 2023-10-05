@@ -2,8 +2,8 @@
 
 machine learning that predicts the outcome of any Division I college football game. Data are from 2015 - 2023 seasons.
 My DNN has an accuracy of 84% on the validation data. I use multi-class learning to use the prior week's feature data
-to predict next week's feature data. I used multiple models to achieve this. Data are from Sports-reference.com (https://www.sports-reference.com/cfb/) and 
-cfbd (https://collegefootballdata.com/). The .pkl files I could not update to GitHub due to size issues.
+to predict next week's feature data. I used multiple models to achieve this. Data are from Sports-reference.com [SportsRef](https://www.sports-reference.com/cfb/) and 
+[CFBD](https://collegefootballdata.com/). The .pkl files I could not update to GitHub due to size issues.
 
 THE BIG PROBLEM:
 -this is trained on every college football teams. The models have bias from the bad teams, thus every top 25 team
