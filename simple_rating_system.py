@@ -3,10 +3,11 @@
 from collect_data import data_for_srs
 from numpy import median, absolute
 from math import isnan
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from tqdm import tqdm
-from matplotlib.pyplot import show, xticks, tight_layout, savefig, figure
+from matplotlib.pyplot import show, xticks, tight_layout, savefig
 import argparse
+from os.path import exists
 """
 Rating = Team's Average Point Differential - Strength of Schedule
 and then rank each team
@@ -65,38 +66,40 @@ def main():
         # Input the two teams of interests
         team_output_list.append(input('input team_1: '))
         team_output_list.append(input('input team_2: '))
+    if not exists('my_srs.csv'):
+        for teams in tqdm(team_output_list):
+            print(f'current team: {teams}')
+            team, opps = get_df(teams)
+            team1_pt_diff = get_pt_diff_team_1(team)
+            processed_school_names = fix_school_names(opps)
+            print(processed_school_names)
+            opp_team_averages = []
+            for opp_team in processed_school_names:
+                try:
+                    team, opps = get_df(opp_team)
+                    opp_diff = float(get_pt_diff_team_2(team))
+                    # print(f'{opp_team}: {opp_diff}')
+                    if isnan(opp_diff):
+                        opp_diff = 0
+                    # print(f'{opp_team}: {opp_diff}')
+                    opp_team_averages.append(opp_diff)
+                except:
+                    print(f'{opp_team} does not not have data. Check spelling or some teams do not have data')
 
-    for teams in tqdm(team_output_list):
-        print(f'current team: {teams}')
-        team, opps = get_df(teams)
-        team1_pt_diff = get_pt_diff_team_1(team)
-        processed_school_names = fix_school_names(opps)
-        print(processed_school_names)
-        opp_team_averages = []
-        for opp_team in processed_school_names:
-            try:
-                team, opps = get_df(opp_team)
-                opp_diff = float(get_pt_diff_team_2(team))
-                # print(f'{opp_team}: {opp_diff}')
-                if isnan(opp_diff):
-                    opp_diff = 0
-                # print(f'{opp_team}: {opp_diff}')
-                opp_team_averages.append(opp_diff)
-            except:
-                print(f'{opp_team} does not not have data. Check spelling or some teams do not have data')
-
-        #Calc SRS
-        srs = team1_pt_diff - median(opp_team_averages)
-        team_dict[teams] = srs
-        print(team_dict)
-    #df and sorting
-    final_df = DataFrame({'Teams': list(team_dict.keys()), 'SRS': list(team_dict.values())})
-    sorted_teams = final_df.sort_values(by='SRS', ascending=False)
-    sorted_teams.to_csv('my_srs.csv',index=False)
-    print(sorted_teams)
+            #Calc SRS
+            srs = team1_pt_diff - median(opp_team_averages)
+            team_dict[teams] = srs
+            print(team_dict)
+        #df and sorting
+        final_df = DataFrame({'Teams': list(team_dict.keys()), 'SRS': list(team_dict.values())})
+        sorted_teams = final_df.sort_values(by='SRS', ascending=False)
+        if args.all == 'yes':
+            sorted_teams.to_csv('my_srs.csv',index=False)
+        print(sorted_teams)
+    else:
+        sorted_teams = read_csv('my_srs.csv')
     if args.all == 'yes':
-        figure(figsize=(20, 6))
-        sorted_teams.plot.bar(x='Teams',y='SRS')
+        sorted_teams.plot.bar(x='Teams',y='SRS',figsize=(20, 6))
         tight_layout()
         xticks(rotation=45)
         savefig('my_srs.png',dpi=400)
