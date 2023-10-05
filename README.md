@@ -36,7 +36,15 @@ I created a simple rating system that uses the median point differential of one 
 by all median point differential of all other teams they played against. The only caveat is that I only count 
 the point differentials of the other teams when they lose, as I want to be able to assess how much each team is 
 losing by. The theory behind this is that good teams will not lose often and when they do it will most likely be 
-by small margins
+by small margins. The higher the srs value, the "better" the team is.
 ![](https://github.com/bszek213/deepCFB/blob/main/my_srs.png) 
+
+### Creating CFBD api key
+got to [CFBD](https://collegefootballdata.com/key) and enter your email address. they will send you an API key. 
+Create a file called `api_key.yaml` and store the API key like this:
+```bash
+api_key:
+  Authorization: asdifnasdofnasdpvnapionmfaspidfasodnfkajdslmalskdm
+```
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
