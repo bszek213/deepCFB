@@ -14,21 +14,29 @@ then that if the good team for a week plays bad, they will still win.
 ## Usage
 
 ```bash
-python3 collect_data.py #update the data for 2023 every week
-python3 deep_learn.py test #evaluate the model on the "test" data, which is the top 25 teams last week's outcomes
-python3 deep_learn.py notest #Predict the outcomes between two teams
+python3 collect_augment_data.py #update the data for 2023 every week
+python3 deep_learning_multiclass.py test #evaluate the model on the "test" data, which is the top 25 teams last week's outcomes
+python3 deep_learning_multiclass.py notest #Predict the outcomes between two teams
 ```
 ### Current prediction accuracies
 ```bash
 # Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
 =======================================
-Ensemble Accuracy out of 25 teams: 0.92
-DNN Accuracy out of 25 teams: 0.92
-LinRegress Accuracy out of 25 teams: 0.92
-RandomForest Accuracy out of 25 teams: 0.92
-Rolling median 2 Accuracy out of 25 teams: 0.92
-MLP Accuracy out of 25 teams: 0.8
-XGB Accuracy out of 25 teams: 0.92
+DNN Accuracy out of 26 teams: 0.65
+LinRegress Accuracy out of 26 teams: 0.61
+Rolling median 2 Accuracy out of 26 teams: 0.69
+```
+### Outputs
+example out when you input two teams
+```bash
+==============================
+Win Probabilities from DNN feature predictions
+syracuse : 95.01610398292542 % florida-state : 4.983900114893913 %
+Win Probabilities from LinRegress feature predictions
+syracuse : 10.211130976676941 % florida-state : 89.7888720035553 %
+Win Probabilities from rolling median predictions
+syracuse : 0.19387530628591776 % florida-state : 99.80612397193909 %
+==============================
 ```
 
 ### My Simple Rating System

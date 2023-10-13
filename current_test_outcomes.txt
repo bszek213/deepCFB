@@ -1,7 +1,0 @@
-Ensemble Accuracy out of 6 teams: 0.3333333333333333
-DNN Accuracy out of 6 teams: 0.3333333333333333
-LinRegress Accuracy out of 6 teams: 0.6666666666666666
-RandomForest Accuracy out of 6 teams: 0.3333333333333333
-Rolling median 2 Accuracy out of 6 teams: 1.0
-MLP Accuracy out of 6 teams: 0.16666666666666666
-XGB Accuracy out of 6 teams: 0.8333333333333334
