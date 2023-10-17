@@ -14,6 +14,10 @@ from os import getcwd, remove
 from tqdm import tqdm
 import yaml
 
+"""
+TODO: create a yaml file where for every year from 2023-2010, I have the top 30 teams 
+in the yaml files. This should help the models learn on patterns of top 30 teams
+"""
 def requests_sports_ref(URL):
     while True:
         try:
@@ -371,7 +375,7 @@ def get_teams():
         else:
             year_counts = {'year':year_list_find}
         #remove the current year to always update with the latest games
-        # year_counts['year'].remove(2023)
+        year_counts['year'].remove(2023)
         if year_counts['year']:
             year_list_check =  year_counts['year']
             year_list_find = year_counts['year']

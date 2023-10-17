@@ -22,6 +22,8 @@ from tqdm import tqdm
 from collect_augment_data import collect_two_teams
 from numpy import nan, array, reshape
 from sys import argv
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
 
 def build_classifier(hp):
     model = keras.Sequential()
@@ -233,9 +235,47 @@ class deepCfbMulti():
             print(f'Linear Regression MSE: {mse_error}')
             with open(lin_abs_path, 'wb') as file:
                     dump(lin_model, file)
+            self.feature_linear_regression = lin_model 
         else:
             with open(lin_abs_path, 'rb') as file:
                 self.feature_linear_regression = load(file)
+
+        #random forest features
+        lin_abs_path = join(getcwd(),'multiclass_models','feature_random_forest.pkl')
+        if not exists(lin_abs_path):
+            param_grid = {
+                'n_estimators': [300, 400, 500],
+                'max_depth': [None, 5, 10, 20],
+                'min_samples_split': [2, 5, 10],  # Change min_child_weight to min_samples_split
+                'min_samples_leaf': [1, 2, 4],  # Change gamma to min_samples_leaf
+            }
+
+            # Train the Random Forest model and Create the GridSearchCV object
+            grid_search = GridSearchCV(estimator=RandomForestRegressor(), 
+                                    param_grid=param_grid, 
+                                    cv=3, n_jobs=10, 
+                                    verbose=3,
+                                    scoring='neg_mean_squared_error')
+
+            # Fit the GridSearchCV object to the training data
+            grid_search.fit(x_train, y_train)
+            
+            #check validation data
+            val_predictions = grid_search.predict(x_test)
+            val_mse = mean_squared_error(y_test, val_predictions)
+
+            # Print the best parameters and best score
+            print("Best Parameters: ", grid_search.best_params_)
+            print("Best Explained Variance: ", grid_search.best_score_)
+            print(f'Valdition MSE: {val_mse}')
+
+            # Save the trained model to a file
+            with open(lin_abs_path, 'wb') as file:
+                    dump(grid_search, file)
+            self.feature_rf = grid_search
+        else:
+            with open(lin_abs_path, 'rb') as file:
+                self.feature_rf = load(file)
 
     def test_forecast(self):
         #all teams
@@ -250,6 +290,7 @@ class deepCfbMulti():
         lin_out = 0
         roll_out = 0
         dnn_out = 0
+        rf_out= 0
 
         for abv in tqdm(teams_list):
             str_combine = 'https://www.sports-reference.com/cfb/schools/' + abv.lower() + '/' + str(2023) + '/gamelog/'
@@ -275,6 +316,7 @@ class deepCfbMulti():
             #Feature prediction
             next_game_features_lin = self.feature_linear_regression.predict(feature_data)
             next_game_features_dnn = self.model_feature_regress_model.predict(feature_data)
+            next_game_features_rf = self.feature_rf.predict(feature_data)
 
             #multi-learning output manipulation
             dnn_list = []
@@ -286,6 +328,7 @@ class deepCfbMulti():
             #Predictions
             prediction_dnn = self.dnn_class.predict(dnn_list)
             prediction_lin = self.dnn_class.predict(next_game_features_lin)
+            prediction_rf = self.dnn_class.predict(next_game_features_rf)
             prediction_rolling = self.dnn_class.predict(rolling_features_2)
 
             #check if outcome is above 0.5 for team 1
@@ -301,6 +344,10 @@ class deepCfbMulti():
                 result_rolling = 1
             else:
                 result_rolling = 0
+            if prediction_rf[0][0] > 0.5:
+                result_rf = 1
+            else:
+                result_rf = 0
 
             if int(game_result_series['team_1_outcome']) == result_dnn:
                     dnn_out += 1
@@ -308,10 +355,13 @@ class deepCfbMulti():
                     lin_out += 1
             if int(game_result_series['team_1_outcome']) == result_rolling:
                     roll_out += 1
+            if int(game_result_series['team_1_outcome']) == result_rf:
+                    rf_out += 1
             
             print('=======================================')
             print(f'DNN Accuracy out of {count_teams} teams: {dnn_out / count_teams}')
             print(f'LinRegress Accuracy out of {count_teams} teams: {lin_out / count_teams}')
+            print(f'RandomForest Accuracy out of {count_teams} teams: {rf_out / count_teams}')
             print(f'Rolling median 2 Accuracy out of {count_teams} teams: {roll_out / count_teams}')
             print('=======================================')
             count_teams += 1
@@ -385,6 +435,7 @@ class deepCfbMulti():
                 #Feature prediction
                 next_game_features_lin = self.feature_linear_regression.predict(feature_data_team_1)
                 next_game_features_dnn = self.model_feature_regress_model.predict(feature_data_team_1)
+                next_game_features_rf = self.feature_rf.predict(feature_data_team_1)
 
                 #multi-learning output manipulation
                 dnn_list = []
@@ -396,6 +447,7 @@ class deepCfbMulti():
                 #Predictions
                 prediction_dnn_1 = self.dnn_class.predict(dnn_list)
                 prediction_lin_1 = self.dnn_class.predict(next_game_features_lin)
+                prediction_rf_1 = self.dnn_class.predict(next_game_features_rf)
                 prediction_rolling_1 = self.dnn_class.predict(rolling_features_2_team_1)
 
                 print('==============================')
@@ -405,6 +457,9 @@ class deepCfbMulti():
                 print('Win Probabilities from LinRegress feature predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_lin_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {(prediction_lin_1[0][1])*100} %'+ Style.RESET_ALL)
+                print('Win Probabilities from RandomForest feature predictions')
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {(prediction_rolling_1[0][1])*100} %'+ Style.RESET_ALL)

@@ -22,9 +22,11 @@ python3 deep_learning_multiclass.py notest #Predict the outcomes between two tea
 ```bash
 # Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
 =======================================
-DNN Accuracy out of 26 teams: 0.65
-LinRegress Accuracy out of 26 teams: 0.61
-Rolling median 2 Accuracy out of 26 teams: 0.69
+DNN Accuracy out of 26 teams: 0.730
+LinRegress Accuracy out of 26 teams: 0.730
+RandomForest Accuracy out of 26 teams: 0.730
+Rolling median 2 Accuracy out of 26 teams: 0.808
+
 ```
 ### Outputs
 example out when you input two teams
