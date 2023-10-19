@@ -8,6 +8,7 @@ from tqdm import tqdm
 from matplotlib.pyplot import show, xticks, tight_layout, savefig
 import argparse
 from os.path import exists
+from colorama import Fore, Style
 """
 Rating = Team's Average Point Differential - Strength of Schedule
 and then rank each team
@@ -56,6 +57,8 @@ def get_pt_diff_team_2(team):
 def main():
     parser = argparse.ArgumentParser(description="SRS - my version")
     parser.add_argument('--all', type=str, choices=['yes', 'no'], help='Perform a teams_to_test() function when "yes" is provided, otherwise if no, input team names.')
+    parser.add_argument('--team_1', type=str, help='Name of team 1')
+    parser.add_argument('--team_2', type=str, help='Name of team 2')
     args = parser.parse_args()
     #save outputs
     team_dict = {}
@@ -64,15 +67,15 @@ def main():
     else:
         team_output_list = []
         # Input the two teams of interests
-        team_output_list.append(input('input team_1: '))
-        team_output_list.append(input('input team_2: '))
+        team_output_list.append(args.team_1)#input('input team_1: ')
+        team_output_list.append(args.team_2)#input('input team_2: ')
     if not exists('my_srs.csv') and args.all == 'yes':
         for teams in tqdm(team_output_list):
             print(f'current team: {teams}')
             team, opps = get_df(teams)
             team1_pt_diff = get_pt_diff_team_1(team)
             processed_school_names = fix_school_names(opps)
-            print(processed_school_names)
+            # print(processed_school_names)
             opp_team_averages = []
             for opp_team in processed_school_names:
                 try:
@@ -95,15 +98,18 @@ def main():
         sorted_teams = final_df.sort_values(by='SRS', ascending=False)
         if args.all == 'yes':
             sorted_teams.to_csv('my_srs.csv',index=False)
-        print(sorted_teams)
+        print('=======================')
+        print(f'SRS output')
+        print(team_dict)
+        print('=======================')
     else:
         sorted_teams = read_csv('my_srs.csv')
-        for teams in tqdm(team_output_list):
+        for teams in team_output_list:
             print(f'current team: {teams}')
             team, opps = get_df(teams)
             team1_pt_diff = get_pt_diff_team_1(team)
             processed_school_names = fix_school_names(opps)
-            print(processed_school_names)
+            # print(processed_school_names)
             opp_team_averages = []
             for opp_team in processed_school_names:
                 try:
@@ -120,7 +126,10 @@ def main():
             #Calc SRS
             srs = team1_pt_diff - median(opp_team_averages)
             team_dict[teams] = srs
-            print(team_dict)
+        print(Fore.YELLOW + Style.BRIGHT + '=======================')
+        print(f'Two teams SRS output')
+        print(team_dict)
+        print('=======================' + Style.RESET_ALL)
     if args.all == 'yes':
         sorted_teams.plot.bar(x='Teams',y='SRS',figsize=(20, 6))
         tight_layout()

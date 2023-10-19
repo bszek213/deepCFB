@@ -570,9 +570,9 @@ def data_for_srs(URL,team,year):
                 #     team = 'UT San Antonio'
                 if '*' in text_data:
                     text_data = text_data.replace('*','')
-                print('opp:',text_data)
+                # print('opp:',text_data)
                 save_opponents.append(text_data)
-                print('team:',team)
+                # print('team:',team)
                 # else:
                 #     havoc.append(nan)
                 #     start_field.append(nan)

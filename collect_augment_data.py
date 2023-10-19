@@ -235,11 +235,11 @@ def collect_two_teams(URL,team,year):
                 else:
                     text_data = td.get_text()
                 opp_team = augment_team_names(text_data)
-                print(f'opponent: {opp_team}')
+                # print(f'opponent: {opp_team}')
                 opp_df = extract_features_from_other_team(opp_team,team,year)
             #current team feature assignment
             if td.get('data-stat') == "game_result":
-                print(f'outcome: {td.get_text()}')
+                # print(f'outcome: {td.get_text()}')
                 result = td.get_text()
 
             if td.get('data-stat') == "turnovers":
@@ -355,7 +355,7 @@ def collect_two_teams(URL,team,year):
                                     'pass_int','game_loc'])
             df = concat([df, opp_df], axis=1)
             final_df = concat([final_df, df])
-            print(final_df)
+            # print(final_df)
             sleep(4)
     return final_df
 def get_teams():
@@ -395,7 +395,7 @@ def get_teams():
                         # team = all_teams(abv)
                         str_combine = 'https://www.sports-reference.com/cfb/schools/' + abv.lower() + '/' + str(year) + '/gamelog/'
                         df_inst = collect_two_teams(str_combine,abv.lower(),year)
-                        print(df_inst)
+                        # print(df_inst)
                         final_list.append(df_inst)
                         if len(df_inst) % 2 != 0:
                             df_inst = df_inst.iloc[:-1]

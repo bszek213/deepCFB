@@ -24,6 +24,7 @@ from numpy import nan, array, reshape
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
+import subprocess
 
 def build_classifier(hp):
     model = keras.Sequential()
@@ -464,6 +465,15 @@ class deepCfbMulti():
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {(prediction_rolling_1[0][1])*100} %'+ Style.RESET_ALL)
                 print('==============================')
+                #run mysrs
+                print('Running my SRS analysis...')
+                command = f"python3 simple_rating_system.py --all no --team_1 {self.team_1} --team_2 {self.team_2}"
+                process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+                for line in process.stdout:
+                    print(line, end='')
+
+                process.wait()  # Wait for the process to finish
             # except Exception as e:
             #      print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
 
