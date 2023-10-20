@@ -25,6 +25,7 @@ from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 import subprocess
+import yaml 
 
 def build_classifier(hp):
     model = keras.Sequential()
@@ -177,6 +178,7 @@ class deepCfbMulti():
                         validation_data=(self.x_test, self.y_test),
                         callbacks=[early_stop])
             best_model.save(abs_path)
+            self.dnn_class = best_model
             validation_loss, validation_accuracy = best_model.evaluate(self.x_test, self.y_test)
             print(f'Validation Loss: {validation_loss}')
             print(f'Validation Accuracy: {validation_accuracy}')
@@ -282,16 +284,21 @@ class deepCfbMulti():
         #all teams
         # teams_list = get_teams_year(2015,2023)
         #Select certain teams
-        with open('teams_played_this_week.txt','r') as file:
-             content = file.read()
-        teams_list = content.split("\n")
-        teams_list = [string for string in teams_list if string.strip() != ""]
+        # with open('teams_played_this_week.txt','r') as file:
+        #      content = file.read()
+        # teams_list = content.split("\n")
+        # teams_list = [string for string in teams_list if string.strip() != ""]
+        with open(join(getcwd(),'team_rankings_year.yaml')) as file:
+            teams_dict_year = yaml.load(file, Loader=yaml.FullLoader)
+        teams_list = teams_dict_year[2023]
 
         count_teams = 1
         lin_out = 0
         roll_out = 0
         dnn_out = 0
         rf_out= 0
+        roll_3 = 0
+        roll_ewm = 0
 
         for abv in tqdm(teams_list):
             str_combine = 'https://www.sports-reference.com/cfb/schools/' + abv.lower() + '/' + str(2023) + '/gamelog/'
@@ -313,6 +320,8 @@ class deepCfbMulti():
 
             #running median calculation
             rolling_features_2 = final_df.rolling(2).median().iloc[-1:]
+            rolling_features_3 = final_df.rolling(3).median().iloc[-1:]
+            rolling_features_mean_2 = final_df.ewm(span=2).mean().iloc[-1:]
 
             #Feature prediction
             next_game_features_lin = self.feature_linear_regression.predict(feature_data)
@@ -331,6 +340,8 @@ class deepCfbMulti():
             prediction_lin = self.dnn_class.predict(next_game_features_lin)
             prediction_rf = self.dnn_class.predict(next_game_features_rf)
             prediction_rolling = self.dnn_class.predict(rolling_features_2)
+            prediction_rolling_3 = self.dnn_class.predict(rolling_features_3)
+            prediction_rolling_ewm = self.dnn_class.predict(rolling_features_mean_2)
 
             #check if outcome is above 0.5 for team 1
             if prediction_dnn[0][0] > 0.5:
@@ -349,6 +360,14 @@ class deepCfbMulti():
                 result_rf = 1
             else:
                 result_rf = 0
+            if prediction_rolling_3[0][0] > 0.5:
+                result_rolling_3 = 1
+            else:
+                result_rolling_3 = 0
+            if prediction_rolling_ewm[0][0] > 0.5:
+                result_rolling_ewm = 1
+            else:
+                result_rolling_ewm = 0
 
             if int(game_result_series['team_1_outcome']) == result_dnn:
                     dnn_out += 1
@@ -358,12 +377,18 @@ class deepCfbMulti():
                     roll_out += 1
             if int(game_result_series['team_1_outcome']) == result_rf:
                     rf_out += 1
+            if int(game_result_series['team_1_outcome']) == result_rolling_3:
+                    roll_3 += 1
+            if int(game_result_series['team_1_outcome']) == result_rolling_ewm:
+                    roll_ewm += 1
             
             print('=======================================')
             print(f'DNN Accuracy out of {count_teams} teams: {dnn_out / count_teams}')
             print(f'LinRegress Accuracy out of {count_teams} teams: {lin_out / count_teams}')
             print(f'RandomForest Accuracy out of {count_teams} teams: {rf_out / count_teams}')
             print(f'Rolling median 2 Accuracy out of {count_teams} teams: {roll_out / count_teams}')
+            print(f'Rolling median 3 Accuracy out of {count_teams} teams: {roll_3 / count_teams}')
+            print(f'Rolling EWM 2 Accuracy out of {count_teams} teams: {roll_ewm / count_teams}')
             print('=======================================')
             count_teams += 1
 
@@ -431,10 +456,11 @@ class deepCfbMulti():
 
                 #running median calculation
                 rolling_features_2_team_1 = final_df_1.rolling(2).median().iloc[-1:]
-                # rolling_features_2_team_2 = final_df_2.rolling(2).median().iloc[-1:]
+                rolling_features_3_team_1 = final_df_1.rolling(3).median().iloc[-1:]
+                rolling_features_ewm = final_df_1.ewm(span=2).mean().iloc[-1:]
 
                 #Feature prediction
-                next_game_features_lin = self.feature_linear_regression.predict(feature_data_team_1)
+                next_game_features_lin = self.feature_linear_regression.predict(forecast_team_1)
                 next_game_features_dnn = self.model_feature_regress_model.predict(feature_data_team_1)
                 next_game_features_rf = self.feature_rf.predict(feature_data_team_1)
 
@@ -450,20 +476,28 @@ class deepCfbMulti():
                 prediction_lin_1 = self.dnn_class.predict(next_game_features_lin)
                 prediction_rf_1 = self.dnn_class.predict(next_game_features_rf)
                 prediction_rolling_1 = self.dnn_class.predict(rolling_features_2_team_1)
+                prediction_rolling_2 = self.dnn_class.predict(rolling_features_3_team_1)
+                prediction_rolling_ewm = self.dnn_class.predict(rolling_features_ewm)
 
                 print('==============================')
-                print('Win Probabilities from DNN feature predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_dnn_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_dnn_1[0][1])*100} %'+ Style.RESET_ALL)
-                print('Win Probabilities from LinRegress feature predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_lin_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_lin_1[0][1])*100} %'+ Style.RESET_ALL)
-                print('Win Probabilities from RandomForest feature predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
-                print('Win Probabilities from rolling median predictions')
+                # print('Win Probabilities from DNN feature predictions')
+                # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_dnn_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                #     f' {self.team_2} : {(prediction_dnn_1[0][1])*100} %'+ Style.RESET_ALL)
+                # print('Win Probabilities from LinRegress feature predictions')
+                # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_lin_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                #     f' {self.team_2} : {(prediction_lin_1[0][1])*100} %'+ Style.RESET_ALL)
+                # print('Win Probabilities from RandomForest feature predictions')
+                # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                #     f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
+                print('Win Probabilities from rolling median of 2 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {(prediction_rolling_1[0][1])*100} %'+ Style.RESET_ALL)
+                print('Win Probabilities from rolling median of 3 predictions')
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_2[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {(prediction_rolling_2[0][1])*100} %'+ Style.RESET_ALL)
+                print('Win Probabilities from exponential weighted average of 2 predictions')
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_ewm[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {(prediction_rolling_ewm[0][1])*100} %'+ Style.RESET_ALL)
                 print('==============================')
                 #run mysrs
                 print('Running my SRS analysis...')
@@ -474,6 +508,7 @@ class deepCfbMulti():
                     print(line, end='')
 
                 process.wait()  # Wait for the process to finish
+                del team_1_df, team_2_df
             # except Exception as e:
             #      print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
 
