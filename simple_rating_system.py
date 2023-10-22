@@ -1,6 +1,7 @@
 #Simple rating systme to assess how "good" a team is
 
 from collect_data import data_for_srs
+from collect_augment_data import augment_team_names
 from numpy import median, absolute
 from math import isnan
 from pandas import DataFrame, read_csv
@@ -43,6 +44,12 @@ def fix_school_names(input_list):
         cleaned_name = name.replace("(", "").replace(")", "").replace("&", "")
         lowercase_name = cleaned_name.lower()
         processed_name = lowercase_name.replace(" ", "-")
+        if processed_name == 'tcu':
+            processed_name = 'texas-christian'
+        if processed_name == 'lafayette':
+            processed_name = 'louisiana-lafayette'
+        if processed_name == 'utsa':
+            processed_name = 'texas-san-antonio'
         # Append the processed name to the new list
         processed_school_names.append(processed_name)
     return processed_school_names

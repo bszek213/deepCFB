@@ -42,6 +42,12 @@ def augment_team_names(team):
         team = team.replace(")", "")
     if "'" in team:
         team = team.replace("'", "")
+    if team == 'tcu':
+        team = 'texas-christian'
+    if team == 'lafayette':
+        team = 'louisiana-lafayette'
+    if team == 'utsa':
+        team = 'texas-san-antonio'
     return team
 
 def extract_features_from_other_team(team,team_playing,year):
