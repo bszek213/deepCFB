@@ -324,42 +324,42 @@ class deepCfbMulti():
             rolling_features_mean_2 = final_df.ewm(span=2).mean().iloc[-1:]
 
             #Feature prediction
-            next_game_features_lin = self.feature_linear_regression.predict(feature_data)
-            next_game_features_dnn = self.model_feature_regress_model.predict(feature_data)
-            next_game_features_rf = self.feature_rf.predict(feature_data)
+            # next_game_features_lin = self.feature_linear_regression.predict(feature_data)
+            # next_game_features_dnn = self.model_feature_regress_model.predict(feature_data)
+            # next_game_features_rf = self.feature_rf.predict(feature_data)
 
             #multi-learning output manipulation
-            dnn_list = []
-            for val in next_game_features_dnn:
-                dnn_list.append(val[0][0])
-            dnn_list = array(dnn_list)
-            dnn_list = reshape(dnn_list, (1,len(dnn_list)))
+            # dnn_list = []
+            # for val in next_game_features_dnn:
+            #     dnn_list.append(val[0][0])
+            # dnn_list = array(dnn_list)
+            # dnn_list = reshape(dnn_list, (1,len(dnn_list)))
 
             #Predictions
-            prediction_dnn = self.dnn_class.predict(dnn_list)
-            prediction_lin = self.dnn_class.predict(next_game_features_lin)
-            prediction_rf = self.dnn_class.predict(next_game_features_rf)
+            # prediction_dnn = self.dnn_class.predict(dnn_list)
+            # prediction_lin = self.dnn_class.predict(next_game_features_lin)
+            # prediction_rf = self.dnn_class.predict(next_game_features_rf)
             prediction_rolling = self.dnn_class.predict(rolling_features_2)
             prediction_rolling_3 = self.dnn_class.predict(rolling_features_3)
             prediction_rolling_ewm = self.dnn_class.predict(rolling_features_mean_2)
 
             #check if outcome is above 0.5 for team 1
-            if prediction_dnn[0][0] > 0.5:
-                result_dnn = 1
-            else:
-                result_dnn = 0
-            if prediction_lin[0][0] > 0.5:
-                result_lin = 1
-            else:
-                result_lin = 0
+            # if prediction_dnn[0][0] > 0.5:
+            #     result_dnn = 1
+            # else:
+            #     result_dnn = 0
+            # if prediction_lin[0][0] > 0.5:
+            #     result_lin = 1
+            # else:
+            #     result_lin = 0
             if prediction_rolling[0][0] > 0.5:
                 result_rolling = 1
             else:
                 result_rolling = 0
-            if prediction_rf[0][0] > 0.5:
-                result_rf = 1
-            else:
-                result_rf = 0
+            # if prediction_rf[0][0] > 0.5:
+            #     result_rf = 1
+            # else:
+            #     result_rf = 0
             if prediction_rolling_3[0][0] > 0.5:
                 result_rolling_3 = 1
             else:
@@ -369,23 +369,23 @@ class deepCfbMulti():
             else:
                 result_rolling_ewm = 0
 
-            if int(game_result_series['team_1_outcome']) == result_dnn:
-                    dnn_out += 1
-            if int(game_result_series['team_1_outcome']) == result_lin:
-                    lin_out += 1
+            # if int(game_result_series['team_1_outcome']) == result_dnn:
+            #         dnn_out += 1
+            # if int(game_result_series['team_1_outcome']) == result_lin:
+            #         lin_out += 1
             if int(game_result_series['team_1_outcome']) == result_rolling:
                     roll_out += 1
-            if int(game_result_series['team_1_outcome']) == result_rf:
-                    rf_out += 1
+            # if int(game_result_series['team_1_outcome']) == result_rf:
+            #         rf_out += 1
             if int(game_result_series['team_1_outcome']) == result_rolling_3:
                     roll_3 += 1
             if int(game_result_series['team_1_outcome']) == result_rolling_ewm:
                     roll_ewm += 1
             
             print('=======================================')
-            print(f'DNN Accuracy out of {count_teams} teams: {dnn_out / count_teams}')
-            print(f'LinRegress Accuracy out of {count_teams} teams: {lin_out / count_teams}')
-            print(f'RandomForest Accuracy out of {count_teams} teams: {rf_out / count_teams}')
+            # print(f'DNN Accuracy out of {count_teams} teams: {dnn_out / count_teams}')
+            # print(f'LinRegress Accuracy out of {count_teams} teams: {lin_out / count_teams}')
+            # print(f'RandomForest Accuracy out of {count_teams} teams: {rf_out / count_teams}')
             print(f'Rolling median 2 Accuracy out of {count_teams} teams: {roll_out / count_teams}')
             print(f'Rolling median 3 Accuracy out of {count_teams} teams: {roll_3 / count_teams}')
             print(f'Rolling EWM 2 Accuracy out of {count_teams} teams: {roll_ewm / count_teams}')
