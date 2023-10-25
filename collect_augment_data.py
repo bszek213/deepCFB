@@ -46,8 +46,14 @@ def augment_team_names(team):
         team = 'texas-christian'
     if team == 'lafayette':
         team = 'louisiana-lafayette'
+    if team == 'louisiana':
+        team = 'louisiana-lafayette'
     if team == 'utsa':
         team = 'texas-san-antonio'
+    if team == 'utep':
+        team = 'texas-el-paso'
+    if team == 'sam-houston':
+        team = "sam-houston-state"
     return team
 
 def extract_features_from_other_team(team,team_playing,year):

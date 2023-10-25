@@ -17,10 +17,18 @@ strength of schedule is the opposing team's point differential
 """
 
 def get_df(team):
-    if team == "utsa":
-        team = "texas-san-antonio"
-    if team == "lafayette":
-        team = "louisiana-lafayette"
+    if team == 'tcu':
+        team = 'texas-christian'
+    if team == 'lafayette':
+        team = 'louisiana-lafayette'
+    if team == 'utsa':
+        team = 'texas-san-antonio'
+    if team == 'utep':
+        team = 'texas-el-paso'
+    if team == 'sam-houston':
+        team = "sam-houston-state"
+    if team == 'louisiana':
+        team = 'louisiana-lafayette'
     str_combine = 'https://www.sports-reference.com/cfb/schools/' + team + '/' + str(2023) + '/gamelog/'
     team, opps  = data_for_srs(str_combine,team,2023)
     return team, opps

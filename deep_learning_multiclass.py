@@ -460,21 +460,21 @@ class deepCfbMulti():
                 rolling_features_ewm = final_df_1.ewm(span=2).mean().iloc[-1:]
 
                 #Feature prediction
-                next_game_features_lin = self.feature_linear_regression.predict(forecast_team_1)
-                next_game_features_dnn = self.model_feature_regress_model.predict(feature_data_team_1)
-                next_game_features_rf = self.feature_rf.predict(feature_data_team_1)
+                # next_game_features_lin = self.feature_linear_regression.predict(forecast_team_1)
+                # next_game_features_dnn = self.model_feature_regress_model.predict(feature_data_team_1)
+                # next_game_features_rf = self.feature_rf.predict(feature_data_team_1)
 
-                #multi-learning output manipulation
-                dnn_list = []
-                for val in next_game_features_dnn:
-                    dnn_list.append(val[0][0])
-                dnn_list = array(dnn_list)
-                dnn_list = reshape(dnn_list, (1,len(dnn_list)))
+                # #multi-learning output manipulation
+                # dnn_list = []
+                # for val in next_game_features_dnn:
+                #     dnn_list.append(val[0][0])
+                # dnn_list = array(dnn_list)
+                # dnn_list = reshape(dnn_list, (1,len(dnn_list)))
 
                 #Predictions
-                prediction_dnn_1 = self.dnn_class.predict(dnn_list)
-                prediction_lin_1 = self.dnn_class.predict(next_game_features_lin)
-                prediction_rf_1 = self.dnn_class.predict(next_game_features_rf)
+                # prediction_dnn_1 = self.dnn_class.predict(dnn_list)
+                # prediction_lin_1 = self.dnn_class.predict(next_game_features_lin)
+                # prediction_rf_1 = self.dnn_class.predict(next_game_features_rf)
                 prediction_rolling_1 = self.dnn_class.predict(rolling_features_2_team_1)
                 prediction_rolling_2 = self.dnn_class.predict(rolling_features_3_team_1)
                 prediction_rolling_ewm = self.dnn_class.predict(rolling_features_ewm)
@@ -490,14 +490,14 @@ class deepCfbMulti():
                 # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                 #     f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 2 predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_rolling_1[0][1])*100} %'+ Style.RESET_ALL)
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_1[0][0])*100),3} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {round((prediction_rolling_1[0][1])*100,3)} %'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 3 predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_2[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_rolling_2[0][1])*100} %'+ Style.RESET_ALL)
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_2[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {round((prediction_rolling_2[0][1])*100),3} %'+ Style.RESET_ALL)
                 print('Win Probabilities from exponential weighted average of 2 predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rolling_ewm[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {(prediction_rolling_ewm[0][1])*100} %'+ Style.RESET_ALL)
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_ewm[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {round((prediction_rolling_ewm[0][1])*100,3)} %'+ Style.RESET_ALL)
                 print('==============================')
                 #run mysrs
                 print('Running my SRS analysis...')
