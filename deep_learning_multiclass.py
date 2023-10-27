@@ -490,11 +490,11 @@ class deepCfbMulti():
                 # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                 #     f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 2 predictions')
-                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_1[0][0])*100),3} %' + Fore.CYAN + Style.BRIGHT +
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_1[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {round((prediction_rolling_1[0][1])*100,3)} %'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 3 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_2[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
-                    f' {self.team_2} : {round((prediction_rolling_2[0][1])*100),3} %'+ Style.RESET_ALL)
+                    f' {self.team_2} : {round((prediction_rolling_2[0][1])*100,3)} %'+ Style.RESET_ALL)
                 print('Win Probabilities from exponential weighted average of 2 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_ewm[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {round((prediction_rolling_ewm[0][1])*100,3)} %'+ Style.RESET_ALL)
