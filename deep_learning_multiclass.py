@@ -20,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape
+from numpy import nan, array, reshape, arange
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
@@ -230,18 +230,18 @@ class deepCfbMulti():
             best_model.save(abs_path)
 
         lin_abs_path = join(getcwd(),'multiclass_models','feature_linear_regression.pkl')
-        if not exists(lin_abs_path):
-            lin_model = LinearRegression().fit(x_train,y_train)
-            y_pred = lin_model.predict(x_test)
-            y_test_np = y_test.to_numpy()
-            mse_error = mean_squared_error(y_test_np,y_pred)
-            print(f'Linear Regression MSE: {mse_error}')
-            with open(lin_abs_path, 'wb') as file:
-                    dump(lin_model, file)
-            self.feature_linear_regression = lin_model 
-        else:
-            with open(lin_abs_path, 'rb') as file:
-                self.feature_linear_regression = load(file)
+        # if not exists(lin_abs_path):
+        lin_model = LinearRegression().fit(x_train,y_train)
+        y_pred = lin_model.predict(x_test)
+        y_test_np = y_test.to_numpy()
+        mse_error = mean_squared_error(y_test_np,y_pred)
+        print(f'Linear Regression MSE: {mse_error}')
+        with open(lin_abs_path, 'wb') as file:
+                dump(lin_model, file)
+        self.feature_linear_regression = lin_model 
+        # else:
+        # with open(lin_abs_path, 'rb') as file:
+        #     self.feature_linear_regression = load(file)
 
         #random forest features
         lin_abs_path = join(getcwd(),'multiclass_models','feature_random_forest.pkl')
@@ -458,6 +458,8 @@ class deepCfbMulti():
                 rolling_features_2_team_1 = final_df_1.rolling(2).median().iloc[-1:]
                 rolling_features_3_team_1 = final_df_1.rolling(3).median().iloc[-1:]
                 rolling_features_ewm = final_df_1.ewm(span=2).mean().iloc[-1:]
+                rolling_low = final_df_1.rolling(window=2).quantile(0.25).iloc[-1:]
+                rolling_high = final_df_1.rolling(window=2).quantile(0.75).iloc[-1:]
 
                 #Feature prediction
                 # next_game_features_lin = self.feature_linear_regression.predict(forecast_team_1)
@@ -478,6 +480,8 @@ class deepCfbMulti():
                 prediction_rolling_1 = self.dnn_class.predict(rolling_features_2_team_1)
                 prediction_rolling_2 = self.dnn_class.predict(rolling_features_3_team_1)
                 prediction_rolling_ewm = self.dnn_class.predict(rolling_features_ewm)
+                prediction_low= self.dnn_class.predict(rolling_low)
+                prediction_high= self.dnn_class.predict(rolling_high)
 
                 print('==============================')
                 # print('Win Probabilities from DNN feature predictions')
@@ -498,6 +502,11 @@ class deepCfbMulti():
                 print('Win Probabilities from exponential weighted average of 2 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_ewm[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {round((prediction_rolling_ewm[0][1])*100,3)} %'+ Style.RESET_ALL)
+                print('Win Probabilities from 25th and 75th percentile rolling 2')
+                print(Fore.YELLOW + Style.BRIGHT + f'25th: {self.team_1} : {round((prediction_low[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {round((prediction_low[0][1])*100,3)} %'+ Style.RESET_ALL)
+                print(Fore.YELLOW + Style.BRIGHT + f'75th: {self.team_1} : {round((prediction_high[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
+                    f' {self.team_2} : {round((prediction_high[0][1])*100,3)} %'+ Style.RESET_ALL)
                 print('==============================')
                 #run mysrs
                 print('Running my SRS analysis...')
