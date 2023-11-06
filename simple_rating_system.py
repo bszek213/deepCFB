@@ -8,8 +8,10 @@ from pandas import DataFrame, read_csv
 from tqdm import tqdm
 from matplotlib.pyplot import show, xticks, tight_layout, savefig
 import argparse
-from os.path import exists
+from os.path import exists, join
 from colorama import Fore, Style
+import yaml
+from os import getcwd
 """
 Rating = Team's Average Point Differential - Strength of Schedule
 and then rank each team
@@ -34,11 +36,10 @@ def get_df(team):
     return team, opps
 
 def teams_to_test():
-    with open('top_30_teams.txt','r') as file:
-        content = file.read()
-    all_teams = content.split("\n")
-    all_teams = [string for string in all_teams if string.strip() != ""]
-    return all_teams
+    with open(join(getcwd(),'team_rankings_year.yaml')) as file:
+            teams_dict_year = yaml.load(file, Loader=yaml.FullLoader)
+    teams_list = teams_dict_year[2023]
+    return teams_list
 
 def get_pt_diff_team_1(df):
     df[['team_1_score', 'team_2_score']] = df['game_result'].str.extract(r'(\d+)-(\d+)').astype(int)

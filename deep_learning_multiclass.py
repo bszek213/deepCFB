@@ -424,6 +424,11 @@ class deepCfbMulti():
                 #     team_2_df = team_2_df.iloc[-len(team_1_df):]
                 # if len(team_2_df) < len(team_1_df):
                 #     team_2_df = concat([team_2_df] * (len(team_1_df) // len(team_2_df)) + [team_2_df.iloc[:len(team_1_df) % len(team_2_df)]])
+
+                #get feature variance
+                team_1_feature_var = team_1_df.var().sum()
+                team_2_feature_var = team_2_df.var().sum()
+
                 # Replace the data from one df with the corresponding data from other df
                 for col in columns_to_replace:
                     opp_col = col + '_opp'
@@ -493,6 +498,9 @@ class deepCfbMulti():
                 # print('Win Probabilities from RandomForest feature predictions')
                 # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                 #     f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
+                print('Feature variance between both teams')
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} feature variance: {team_1_feature_var}'+ Style.RESET_ALL)
+                print(Fore.CYAN + Style.BRIGHT + f'{self.team_2} feature variance: {team_2_feature_var}'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 2 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_1[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {round((prediction_rolling_1[0][1])*100,3)} %'+ Style.RESET_ALL)
