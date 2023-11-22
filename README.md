@@ -22,12 +22,14 @@ python3 deep_learning_multiclass.py notest #Predict the outcomes between two tea
 ```bash
 # Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
 # Current model validation loss and validation:
-Validation Loss: 0.15
-Validation Accuracy: 0.93
+number of features: 40
+number of samples: 6053
+Validation Loss: 0.13
+Validation Accuracy: 0.95
 =======================================
-Rolling median 2 Accuracy out of 38 teams: 0.7894736842105263
-Rolling median 3 Accuracy out of 38 teams: 0.8157894736842105
-Rolling EWM 2 Accuracy out of 38 teams: 0.8421052631578947
+Rolling median 2 Accuracy out of 38 teams: 0.8947368421052632
+Rolling median 3 Accuracy out of 38 teams: 0.868421052631579
+Rolling EWM 2 Accuracy out of 38 teams: 0.8947368421052632
 =======================================
 ```
 ### Outputs
