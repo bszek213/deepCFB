@@ -1,5 +1,5 @@
 #multiclass deep-learning on college football games
-from pandas import read_csv, DataFrame, concat, io
+from pandas import read_csv, DataFrame, concat, io, to_numeric
 from os.path import join, exists
 from os import getcwd, mkdir
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -31,7 +31,7 @@ def build_classifier(hp):
     model = keras.Sequential()
 
     # Tune the number of layers
-    num_layers = hp.Int('num_layers', min_value=1, max_value=5, step=1)
+    num_layers = hp.Int('num_layers', min_value=1, max_value=10, step=1)
 
     for i in range(num_layers):
         # Tune the number of units in each layer
@@ -114,6 +114,10 @@ class deepCfbMulti():
         #Read in data
         self.all_data = read_csv(join(getcwd(),'all_data.csv'))
         self.all_data = concat([self.all_data, read_csv(join(getcwd(),'all_data_2023.csv'))])
+
+        for column in self.all_data.columns:
+            if column != 'game_result':
+                self.all_data[column] = to_numeric(self.all_data[column], errors='coerce')
 
         self.x_regress = read_csv(join(getcwd(),'x_feature_regression.csv')) 
         self.x_regress = concat([self.x_regress, read_csv(join(getcwd(),'x_feature_regression_2023.csv'))])
@@ -308,6 +312,9 @@ class deepCfbMulti():
             game_result_series = df_inst[['team_1_outcome','team_2_outcome']].iloc[-1]
             df_inst.drop(columns=self.classifier_drop, inplace=True)
 
+            for column in df_inst.columns:
+                df_inst[column] = to_numeric(df_inst[column], errors='coerce')
+
             #Standardize
             X_std = self.scaler.transform(df_inst)
             #FA
@@ -425,16 +432,24 @@ class deepCfbMulti():
                 # if len(team_2_df) < len(team_1_df):
                 #     team_2_df = concat([team_2_df] * (len(team_1_df) // len(team_2_df)) + [team_2_df.iloc[:len(team_1_df) % len(team_2_df)]])
 
+                #need to make sure all data are numeric????
+                # for column in team_1_df.columns:
+                #     print(team_1_df[column])
+                #     team_1_df[column] = to_numeric(team_1_df[column], errors='coerce')
+                # for column in team_2_df.columns:
+                #     team_2_df[column] = to_numeric(team_2_df[column], errors='coerce')
+
                 #get feature variance
                 team_1_feature_var = team_1_df.var().sum()
                 team_2_feature_var = team_2_df.var().sum()
-
+                #summed standard deviation
+                team_1_feature_std = team_1_df.std().sum()
+                team_2_feature_std = team_2_df.std().sum()
                 # Replace the data from one df with the corresponding data from other df
                 for col in columns_to_replace:
                     opp_col = col + '_opp'
                     if opp_col in team_1_df.columns:
                         team_1_df[opp_col] = team_2_df[col]
-
                 team_1_df['team_2_score'] = team_2_df['team_1_score']
 
                 # print("Non-opp columns of df2:")
@@ -498,9 +513,12 @@ class deepCfbMulti():
                 # print('Win Probabilities from RandomForest feature predictions')
                 # print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {(prediction_rf_1[0][0])*100} %' + Fore.CYAN + Style.BRIGHT +
                 #     f' {self.team_2} : {(prediction_rf_1[0][1])*100} %'+ Style.RESET_ALL)
-                print('Feature variance between both teams')
+                print('Summed Feature Variance Between Both Teams')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} feature variance: {team_1_feature_var}'+ Style.RESET_ALL)
                 print(Fore.CYAN + Style.BRIGHT + f'{self.team_2} feature variance: {team_2_feature_var}'+ Style.RESET_ALL)
+                print('Summed Feature Standard Deviation Between Both Teams')
+                print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} feature standard deviation: {team_1_feature_std}'+ Style.RESET_ALL)
+                print(Fore.CYAN + Style.BRIGHT + f'{self.team_2} feature standard deviation: {team_2_feature_std}'+ Style.RESET_ALL)
                 print('Win Probabilities from rolling median of 2 predictions')
                 print(Fore.YELLOW + Style.BRIGHT + f'{self.team_1} : {round((prediction_rolling_1[0][0])*100,3)} %' + Fore.CYAN + Style.BRIGHT +
                     f' {self.team_2} : {round((prediction_rolling_1[0][1])*100,3)} %'+ Style.RESET_ALL)

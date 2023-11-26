@@ -5,7 +5,7 @@ from collect_data import read_api_key_from_yaml
 import cfbd
 import requests
 from bs4 import BeautifulSoup
-from pandas import DataFrame, read_csv, concat
+from pandas import DataFrame, read_csv, concat, to_numeric
 import cfbd
 from numpy import nan, where
 from time import sleep
@@ -367,8 +367,10 @@ def collect_two_teams(URL,team,year):
                                     'pass_int','game_loc'])
             df = concat([df, opp_df], axis=1)
             final_df = concat([final_df, df])
-            # print(final_df)
             sleep(4)
+    for column in final_df.columns:
+        if column != 'game_result':
+            final_df[column] = to_numeric(final_df[column], errors='coerce')
     return final_df
 def get_teams():
         year_list_find = []

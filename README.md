@@ -24,8 +24,8 @@ python3 deep_learning_multiclass.py notest #Predict the outcomes between two tea
 # Current model validation loss and validation:
 number of features: 40
 number of samples: 6053
-Validation Loss: 0.13
-Validation Accuracy: 0.95
+Validation Loss: 0.07
+Validation Accuracy: 0.98
 =======================================
 Rolling median 2 Accuracy out of 38 teams: 0.8947368421052632
 Rolling median 3 Accuracy out of 38 teams: 0.868421052631579
