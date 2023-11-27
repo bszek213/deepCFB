@@ -23,25 +23,35 @@ python3 deep_learning_multiclass.py notest #Predict the outcomes between two tea
 # Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
 # Current model validation loss and validation:
 number of features: 40
-number of samples: 6053
-Validation Loss: 0.07
-Validation Accuracy: 0.98
+number of samples: 6090
+Validation Loss: 0.17
+Validation Accuracy: 0.93
 =======================================
-Rolling median 2 Accuracy out of 38 teams: 0.8947368421052632
-Rolling median 3 Accuracy out of 38 teams: 0.868421052631579
+Rolling median 2 Accuracy out of 38 teams: 0.8421052631578947
+Rolling median 3 Accuracy out of 38 teams: 0.7894736842105263
 Rolling EWM 2 Accuracy out of 38 teams: 0.8947368421052632
+Rolling EWM 3 Accuracy out of 38 teams: 0.868421052631579
 =======================================
 ```
 ### Outputs
 example out when you input two teams
 ```bash
 ==============================
-Win Probabilities from DNN feature predictions
-syracuse : 95.01610398292542 % florida-state : 4.983900114893913 %
-Win Probabilities from LinRegress feature predictions
-syracuse : 10.211130976676941 % florida-state : 89.7888720035553 %
-Win Probabilities from rolling median predictions
-syracuse : 0.19387530628591776 % florida-state : 99.80612397193909 %
+georgia feature variance: 18363.732727272727
+alabama feature variance: 21099.284181818184
+Summed Feature Standard Deviation Between Both Teams
+georgia feature standard deviation: 412.0654012042738
+alabama feature standard deviation: 433.0351119254192
+Win Probabilities from rolling median of 2 predictions
+georgia : 17.396 % alabama : 82.604 %
+Win Probabilities from rolling median of 3 predictions
+georgia : 2.538 % alabama : 97.462 %
+Win Probabilities from exponential weighted average of 2 predictions
+georgia : 52.955 % alabama : 47.045 %
+Win Probabilities from 25th and 75th percentile rolling 2
+25th: georgia : 3.316 % alabama : 96.684 %
+75th: georgia : 38.107 % alabama : 61.893 %
+Two teams SRS output: {'georgia': 9.5, 'alabama': 0.0}
 ==============================
 ```
 
