@@ -20,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape, arange
+from numpy import nan, array, reshape, arange, random
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
@@ -155,6 +155,11 @@ class deepCfbMulti():
 
         #split data
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.x_data, self.y, train_size=0.8)
+
+        #add noise
+        for col in self.x_train.columns:
+            noise_factor = 0.02 * (self.x_train[col].max() - self.x_train[col].min())
+            self.x_train[col] += noise_factor * random.normal(loc=0.0, scale=1.0, size=self.x_train[col].shape)
     
     def multiclass_class(self):
         if not exists('multiclass_models'):
@@ -219,7 +224,7 @@ class deepCfbMulti():
             tuner = RandomSearch(
                 lambda hp: create_model_classifier(hp,x_regress.shape[1]),
                 objective='val_loss',
-                max_trials=100,
+                max_trials=50,
                 directory='feature_learning_dnn',
                 project_name='model_tuning')
             tuner.search_space_summary()
@@ -411,7 +416,7 @@ class deepCfbMulti():
 
     def predict_teams(self):
         while True:
-            # try:
+            try:
                 self.team_1 = input('team_1: ')
                 if self.team_1 == 'exit':
                     break
@@ -554,8 +559,8 @@ class deepCfbMulti():
 
                 process.wait()  # Wait for the process to finish
                 del team_1_df, team_2_df
-            # except Exception as e:
-            #      print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
+            except Exception as e:
+                 print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
 
     def extract_features(self,df):
         team_df_forecast_last = df.iloc[-1:] #last game
