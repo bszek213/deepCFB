@@ -1,0 +1,22 @@
+The error: 'NoneType' object has no attribute 'find'. Most likely louisiana-lafeyette or buffalo do not have data
+==============================
+Win Probabilities from Monte Carlo Simulation with 10000 simulations
+louisiana-lafayette : 99.999 %buffalo : 0.001 %
+Win Probabilities from rolling median of 2 predictions
+louisiana-lafayette : 100.0 %buffalo : 0.0 %
+Win Probabilities from rolling median of 3 predictions
+louisiana-lafayette : 99.99 %buffalo : 0.01 %
+Win Probabilities from exponential weighted average of 2 predictions
+louisiana-lafayette : 100.0 %buffalo : 0.0 %
+Win Probabilities from 25th and 75th percentile rolling 2
+25th: louisiana-lafayette : 100.0 %buffalo : 0.0 %
+75th: louisiana-lafayette : 99.999 %buffalo : 0.001 %
+==============================
+current team: louisiana-lafayette
+northwestern-state does not not have data. Check spelling or some teams do not have data
+current team: buffalo
+fordham does not not have data. Check spelling or some teams do not have data
+[33m[1m=======================
+Two teams SRS output
+{'louisiana-lafayette': -16.5, 'buffalo': -20.0}
+=======================[0m
