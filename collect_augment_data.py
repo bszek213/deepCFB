@@ -15,7 +15,7 @@ from tqdm import tqdm
 import yaml
 
 """
-TODO: create a yaml file where for every year from 2023-2010, I have the top 30 teams 
+TODO: create a yaml file where for every year from 2024-2010, I have the top 30 teams 
 in the yaml files. This should help the models learn on patterns of top 30 teams
 """
 def requests_sports_ref(URL):
@@ -375,7 +375,7 @@ def collect_two_teams(URL,team,year):
 
 def get_teams():
         year_list_find = []
-        year_list = [2023,2022,2021,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010]#,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]
+        year_list = [2024,2023,2022,2021,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010]#,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]
         #all teams with data
         # all_teams = get_teams_year(min(year_list),2023)
         #select only the top 40 teams from every year tested
@@ -390,7 +390,7 @@ def get_teams():
             with open(join(getcwd(),'year_count.yaml')) as file:
                 year_counts = yaml.load(file, Loader=yaml.FullLoader)
                 #remove the current year to always update with the latest games
-                year_counts['year'].remove(2023)
+                year_counts['year'].remove(2024)
         else:
             year_counts = {'year':year_list_find}
 
@@ -427,16 +427,16 @@ def get_teams():
                 final_data_y_regress = concat(y_feature_regress)
                 final_data = output.replace(r'^\s*$', nan, regex=True) #replace empty string with NAN
 
-                if year == 2023:
+                if year == 2024:
                     #Remove old data so that you can update with the most recent games
-                    if exists(join(getcwd(),'all_data_2023.csv')):
-                        remove('all_data_2023.csv')
-                        remove('x_feature_regression_2023.csv')
-                        remove('y_feature_regression_2023.csv')
-                    if not exists(join(getcwd(),'all_data_2023.csv')):
-                        final_data.to_csv(join(getcwd(),'all_data_2023.csv'),index=False)
-                        final_data_x_regress.to_csv(join(getcwd(),'x_feature_regression_2023.csv'),index=False)
-                        final_data_y_regress.to_csv(join(getcwd(),'y_feature_regression_2023.csv'),index=False)
+                    if exists(join(getcwd(),'all_data_2024.csv')):
+                        remove('all_data_2024.csv')
+                        remove('x_feature_regression_2024.csv')
+                        remove('y_feature_regression_2024.csv')
+                    if not exists(join(getcwd(),'all_data_2024.csv')):
+                        final_data.to_csv(join(getcwd(),'all_data_2024.csv'),index=False)
+                        final_data_x_regress.to_csv(join(getcwd(),'x_feature_regression_2024.csv'),index=False)
+                        final_data_y_regress.to_csv(join(getcwd(),'y_feature_regression_2024.csv'),index=False)
                 else:
                     if exists(join(getcwd(),'all_data.csv')):
                         all_data = read_csv(join(getcwd(),'all_data.csv'))  

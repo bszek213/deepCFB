@@ -1,6 +1,6 @@
 # College Football Game Predictions
 
-machine learning that predicts the outcome of any Division I college football game. Data are from 2015 - 2023 seasons.
+machine learning that predicts the outcome of any Division I college football game. Data are from 2015 - 2024 seasons.
 My DNN has an accuracy of 84% on the validation data. I use multi-class learning to use the prior week's feature data
 to predict next week's feature data. I used multiple models to achieve this. Data are from [SportsReference](https://www.sports-reference.com/cfb/) and 
 [CFBD](https://collegefootballdata.com/). The .pkl files I could not upload to GitHub due to size issues.
@@ -14,44 +14,28 @@ then that if the good team for a week plays bad, they will still win.
 ## Usage
 
 ```bash
-python3 collect_augment_data.py #update the data for 2023 every week
+python3 collect_augment_data.py #update the data for 2024 every week
 python3 deep_learning_multiclass.py test #evaluate the model on the "test" data, which is the top 25 teams last week's outcomes
 python3 deep_learning_multiclass.py notest #Predict the outcomes between two teams
 ```
 ### Current prediction accuracies
-```bash
-# Classification accuracy on predicting last week's outcomes for each model. I used the feature learning approach and a rolling average of 2
-# Current model validation loss and validation:
-number of features: 40
-number of samples: 6090
-Validation Loss: 0.17
-Validation Accuracy: 0.93
-=======================================
-Rolling median 2 Accuracy out of 38 teams: 0.8421052631578947
-Rolling median 3 Accuracy out of 38 teams: 0.7894736842105263
-Rolling EWM 2 Accuracy out of 38 teams: 0.8947368421052632
-Rolling EWM 3 Accuracy out of 38 teams: 0.868421052631579
-=======================================
-```
+![](https://github.com/bszek213/deepCFB/blob/main/Training.png) 
+
 ### Outputs
-example out when you input two teams
+example out from the `results.txt`
 ```bash
 ==============================
-georgia feature variance: 18363.732727272727
-alabama feature variance: 21099.284181818184
-Summed Feature Standard Deviation Between Both Teams
-georgia feature standard deviation: 412.0654012042738
-alabama feature standard deviation: 433.0351119254192
+Win Probabilities from Monte Carlo Simulation with 10000 simulations
+louisiana-lafayette : 99.999 %buffalo : 0.001 %
 Win Probabilities from rolling median of 2 predictions
-georgia : 17.396 % alabama : 82.604 %
+louisiana-lafayette : 100.0 %buffalo : 0.0 %
 Win Probabilities from rolling median of 3 predictions
-georgia : 2.538 % alabama : 97.462 %
+louisiana-lafayette : 99.99 %buffalo : 0.01 %
 Win Probabilities from exponential weighted average of 2 predictions
-georgia : 52.955 % alabama : 47.045 %
+louisiana-lafayette : 100.0 %buffalo : 0.0 %
 Win Probabilities from 25th and 75th percentile rolling 2
-25th: georgia : 3.316 % alabama : 96.684 %
-75th: georgia : 38.107 % alabama : 61.893 %
-Two teams SRS output: {'georgia': 9.5, 'alabama': 0.0}
+25th: louisiana-lafayette : 100.0 %buffalo : 0.0 %
+75th: louisiana-lafayette : 99.999 %buffalo : 0.001 %
 ==============================
 ```
 

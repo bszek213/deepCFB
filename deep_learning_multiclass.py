@@ -3,7 +3,7 @@ from pandas import read_csv, DataFrame, concat, io, to_numeric
 from os.path import join, exists
 from os import getcwd, mkdir
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.decomposition import FactorAnalysis
+from sklearn.decomposition import FactorAnalysis, PCA
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -20,28 +20,47 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape, arange, random, zeros, argmax, median
+from numpy import nan, array, reshape, arange, random, zeros, argmax, median, shape
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 import subprocess
 import yaml 
 from scipy.stats import norm
-
-def build_classifier(hp):
+from tensorflow.keras import regularizers
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
+import shutil
+import math
+def build_classifier(hp,input_shape):
     model = keras.Sequential()
 
+    num_features = input_shape[1]  # Assumes self.x_train is already defined and has a shape attribute
+    print(f"Number of features: {num_features}")
     # Tune the number of layers
     num_layers = hp.Int('num_layers', min_value=1, max_value=10, step=1)
 
+    # Tune weight initialization
+    kernel_initializer = hp.Choice('kernel_initializer', values=['glorot_uniform', 'he_uniform', 'random_normal'])
+
+    # Tune L2 regularization
+    l2_reg = hp.Float('l2_reg', min_value=1e-6, max_value=1e-2, sampling='log')
+
+    # Tune batch normalization usage
+    use_batch_norm = hp.Boolean('use_batch_norm')
+
     for i in range(num_layers):
         # Tune the number of units in each layer
-        units = hp.Int(f'units_layer_{i}', min_value=8, max_value=512, step=32)
+        units = hp.Int(f'units_layer_{i}', min_value=8, max_value=512, step=24)
 
         # Tune the activation function
         activation = hp.Choice(f'activation_layer_{i}', values=['relu', 'tanh', 'sigmoid'])
 
-        model.add(layers.Dense(units=units, activation=activation))
+        model.add(layers.Dense(units=units, activation=activation, 
+                               kernel_initializer=kernel_initializer,
+                               kernel_regularizer=regularizers.l2(l2_reg)))
+
+        if use_batch_norm:
+            model.add(layers.BatchNormalization())
 
         # Tune dropout rate
         dropout_rate = hp.Float(f'dropout_layer_{i}', min_value=0.0, max_value=0.5, step=0.1)
@@ -54,19 +73,42 @@ def build_classifier(hp):
     optimizer = hp.Choice('optimizer', values=['adam', 'rmsprop', 'sgd'])
     learning_rate = hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')
 
-    if optimizer == 'adam':
-        model.compile(optimizer=Adam(learning_rate=learning_rate),
-                    loss='categorical_crossentropy',  # Change the loss function
-                    metrics=['accuracy'])
-    elif optimizer == 'rmsprop':
-        model.compile(optimizer=RMSprop(learning_rate=learning_rate),
-                    loss='categorical_crossentropy',  # Change the loss function
-                    metrics=['accuracy'])
-    else:
-        model.compile(optimizer=SGD(learning_rate=learning_rate),
-                    loss='categorical_crossentropy',  # Change the loss function
-                    metrics=['accuracy'])
+    # Tune batch size - need to get this outside the model. not used inside
+    batch_size = hp.Int('batch_size', min_value=16, max_value=128, step=16)
 
+    # Tune learning rate decay
+    decay_steps = hp.Int('decay_steps', min_value=1000, max_value=10000, step=1000)
+    decay_rate = hp.Float('decay_rate', min_value=0.1, max_value=0.9, step=0.1)
+
+    # Create learning rate schedule
+    lr_schedule = ExponentialDecay(
+        initial_learning_rate=learning_rate,
+        decay_steps=decay_steps,
+        decay_rate=decay_rate
+    )
+
+    # Tune gradient clipping
+    clipnorm = hp.Float('clipnorm', min_value=0.1, max_value=1.0, step=0.1)
+
+    if optimizer == 'adam':
+        opt = Adam(learning_rate=lr_schedule, clipnorm=clipnorm)
+    elif optimizer == 'rmsprop':
+        opt = RMSprop(learning_rate=lr_schedule, clipnorm=clipnorm)
+    else:
+        # Tune momentum for SGD
+        momentum = hp.Float('momentum', min_value=0.0, max_value=0.9, step=0.1)
+        opt = SGD(learning_rate=lr_schedule, momentum=momentum, clipnorm=clipnorm)
+
+    model.compile(optimizer=opt,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    return model, batch_size
+
+#wrapper function to extract model and batch size
+def build_classifier_with_batch_size(hp,input_shape):
+    model, batch_size = build_classifier(hp,input_shape)
+    hp.values['batch_size'] = batch_size
     return model
 
 def create_model_classifier(hp,shape_input):
@@ -114,17 +156,17 @@ class deepCfbMulti():
     def split_classifier(self):
         #Read in data
         self.all_data = read_csv(join(getcwd(),'all_data.csv'))
-        self.all_data = concat([self.all_data, read_csv(join(getcwd(),'all_data_2023.csv'))])
+        self.all_data = concat([self.all_data, read_csv(join(getcwd(),'all_data_2024.csv'))])
 
         for column in self.all_data.columns:
             if column != 'game_result':
                 self.all_data[column] = to_numeric(self.all_data[column], errors='coerce')
 
         self.x_regress = read_csv(join(getcwd(),'x_feature_regression.csv')) 
-        self.x_regress = concat([self.x_regress, read_csv(join(getcwd(),'x_feature_regression_2023.csv'))])
+        self.x_regress = concat([self.x_regress, read_csv(join(getcwd(),'x_feature_regression_2024.csv'))])
 
         self.y_regress = read_csv(join(getcwd(),'y_feature_regression.csv')) 
-        self.y_regress = concat([self.y_regress, read_csv(join(getcwd(),'y_feature_regression_2023.csv'))])
+        self.y_regress = concat([self.y_regress, read_csv(join(getcwd(),'y_feature_regression_2024.csv'))])
 
         self.all_data = self.str_manipulations(self.all_data)
         self.x_regress = self.str_manipulations(self.x_regress)
@@ -142,9 +184,32 @@ class deepCfbMulti():
         self.scaler = MinMaxScaler(feature_range=(0,1))
         X_std = self.scaler.fit_transform(self.x)
         #FA
-        self.fa = FactorAnalysis(n_components=self.manual_comp)
-        X_fa = self.fa.fit_transform(X_std)
-        self.x_data = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
+        # self.fa = FactorAnalysis(n_components=self.manual_comp)
+        # X_fa = self.fa.fit_transform(X_std)
+        # self.x_data = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
+
+        self.fa = PCA(n_components=0.95)  # Specify the variance ratio to keep
+        X_pca = self.fa.fit_transform(X_std)
+        self.manual_comp = X_pca.shape[1]
+        self.x_data = DataFrame(X_pca, columns=[f'FA{i+1}' for i in range(X_pca.shape[1])])
+
+        print(f"PCA reduced the number of features from {len(self.x.columns)} to {X_pca.shape[1]}")
+
+        num_columns = self.x_data.shape[1]
+        grid_size = math.ceil(math.sqrt(num_columns))
+        fig, axes = plt.subplots(grid_size, grid_size, figsize=(15, 15))
+        axes = axes.flatten()
+        for i, col in enumerate(self.x_data.columns):
+            axes[i].hist(self.x_data[col], bins=30, color='blue', alpha=0.7)
+            axes[i].set_title(col)
+        for i in range(num_columns, len(axes)):
+            fig.delaxes(axes[i])
+        plt.tight_layout()
+        plt.savefig('all_histograms.png', dpi=300)
+        plt.close()
+
+        binary_columns = self.x_data.columns[self.x_data.nunique() == 1]
+        self.x_data = self.x_data.drop(columns=binary_columns)
 
         #drop non-normal columns - removes columns that have no distribution (ie they are binary data) - Exploratory for now
         self.non_normal_columns = []
@@ -154,14 +219,29 @@ class deepCfbMulti():
                 self.non_normal_columns.append(column)
         self.x_data = self.x_data.drop(self.non_normal_columns, axis=1)
 
-        #split data
-        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.x_data, self.y, train_size=0.8)
+        with open('num_features.txt','w') as f:
+            f.write(f'Number of features that the model will be trained on: {self.x_data.shape[1]}')
+
+        #split data 75/15/10
+        # self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.x_data, self.y, train_size=0.8)
+        self.x_train, x_temp, self.y_train, y_temp = train_test_split(self.x_data, self.y, train_size=0.75, random_state=42)
+        self.x_valid, self.x_test, self.y_valid, self.y_test = train_test_split(x_temp, y_temp, test_size=0.4, random_state=42)
 
         #add noise
         for col in self.x_train.columns:
             noise_factor = 0.02 * (self.x_train[col].max() - self.x_train[col].min())
-            self.x_train[col] += noise_factor * random.normal(loc=0.0, scale=1.0, size=self.x_train[col].shape)
-    
+            # arrr = random.normal(loc=self.x_train[col].mean(),
+            #                                                   scale=self.x_train[col].std()*2.0, 
+            #                                                   size=self.x_train[col].shape)
+            # plt.hist(arrr,label='noise')
+            # plt.hist(self.x_train[col],label='no_noise')
+            # plt.title(f'{self.x_train.shape}')
+            # plt.legend()
+            # plt.show()
+            self.x_train[col] += noise_factor * random.normal(loc=self.x_train[col].mean(),
+                                                              scale=self.x_train[col].std()*2.0, 
+                                                              size=self.x_train[col].shape)
+
     def multiclass_class(self):
         if not exists('multiclass_models'):
             mkdir("multiclass_models")
@@ -169,30 +249,61 @@ class deepCfbMulti():
         if exists(abs_path):
             self.dnn_class = keras.models.load_model(abs_path)
         else:
+            shutil.rmtree('classifier_multiclass', ignore_errors=True)
+            input_shape = self.x_train.shape
             tuner = RandomSearch(
-                build_classifier,
+                lambda hp: build_classifier_with_batch_size(hp, input_shape),
                 objective='val_accuracy',
-                max_trials=125,  # Number of combinations to try
-                directory='classifier_multiclass',  # Directory to store the results
-                project_name='classifier_multiclass_project'
+                max_trials=350,
+                directory='classifier_multiclass',
+                project_name='classifier_multiclass_project',
+                overwrite=True
             )
 
             early_stop = EarlyStopping(monitor='val_loss', patience=30, mode='min', verbose=1)
             tuner.search(self.x_train, self.y_train, 
-                        epochs=100, batch_size=128, 
-                        validation_data=(self.x_test, self.y_test),
+                        epochs=100, batch_size=None, 
+                        validation_data=(self.x_valid, self.y_valid),
                         callbacks=[early_stop]) 
             
             best_model = tuner.get_best_models(1)[0]
-            best_model.fit(self.x_train, self.y_train, epochs=100, batch_size=128, verbose=2,
-                        validation_data=(self.x_test, self.y_test),
-                        callbacks=[early_stop])
+            #get best hyperparameters
+            best_hp = tuner.get_best_hyperparameters(num_trials=1)[0]
+            best_batch_size = best_hp.get('batch_size')
+            with open('hyperparameters.txt', 'w') as f:
+                for key, value in best_hp.values.items():
+                    f.write(f'{key}: {value}\n')
+                f.write(f'best_batch_size: {best_batch_size}\n')
+            history = best_model.fit(self.x_train, self.y_train, 
+                                     epochs=150, batch_size=int(best_batch_size), verbose=2,
+                                     validation_data=(self.x_test, self.y_test),
+                                     callbacks=[early_stop])
             best_model.save(abs_path)
             self.dnn_class = best_model
-            validation_loss, validation_accuracy = best_model.evaluate(self.x_test, self.y_test)
-            print(f'Validation Loss: {validation_loss}')
-            print(f'Validation Accuracy: {validation_accuracy}')
-    
+            test_loss, test_accuracy = best_model.evaluate(self.x_test, self.y_test)
+            epochs = range(1, len(history.history['loss']) + 1)
+            plt.figure(figsize=(14, 5))
+
+            plt.subplot(1, 2, 1)
+            plt.plot(epochs, history.history['loss'], label='Training Loss')
+            plt.plot(epochs, history.history['val_loss'], label='Validation Loss')
+            plt.title(f'Training and Validation Loss: Test Loss: {test_loss}')
+            plt.xlabel('Epochs')
+            plt.ylabel('Loss')
+            plt.legend()
+
+            plt.subplot(1, 2, 2)
+            plt.plot(epochs, history.history['accuracy'], label='Training Accuracy')
+            plt.plot(epochs, history.history['val_accuracy'], label='Validation Accuracy')
+            plt.title(f'Training and Validation Accuracy: Test Accuracy: {test_accuracy}')
+            plt.xlabel('Epochs')
+            plt.ylabel('Accuracy')
+            plt.legend()
+
+            plt.tight_layout()
+            plt.savefig('Training.png',dpi=400)
+            plt.close()
+
     def deep_learn_features(self):
         #drop target label
         self.x_regress.drop(columns=self.classifier_drop,inplace=True)
@@ -598,6 +709,7 @@ class deepCfbMulti():
                         continue
                     
                     self.team_1, self.team_2 = teams
+                    print(f'Currentlly making predictions for {self.team_1} vs. {self.team_2}')
                     str_combine = f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/2023/gamelog/'
                     team_1_df = collect_two_teams(str_combine, self.team_1.lower(), 2023)
                     str_combine = f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/2023/gamelog/'
@@ -618,11 +730,6 @@ class deepCfbMulti():
                     elif length_difference < 0:
                         team_2_df = team_2_df.iloc[-length_difference:]
 
-                    team_1_feature_var = team_1_df.var().sum()
-                    team_2_feature_var = team_2_df.var().sum()
-                    team_1_feature_std = team_1_df.std().sum()
-                    team_2_feature_std = team_2_df.std().sum()
-
                     for col in columns_to_replace:
                         opp_col = col + '_opp'
                         if opp_col in team_1_df.columns:
@@ -637,7 +744,7 @@ class deepCfbMulti():
                     n_simulations = 10000
                     all_probas = zeros((n_simulations, 2))
                     for i in tqdm(range(n_simulations)):
-                        mc_sample = array([norm.rvs(loc=final_df_1[col].mean(), scale=final_df_1[col].std()) 
+                        mc_sample = array([norm.rvs(loc=final_df_1[col].mean(), scale=final_df_1[col].std()*3) 
                                         for col in final_df_1.columns]).T
                         mc_sample = mc_sample.reshape(1, -1)
                         probas = self.dnn_class.predict(mc_sample)
@@ -678,13 +785,14 @@ class deepCfbMulti():
                     results.write(f'{self.team_2} : {round((prediction_high[0][1]) * 100, 3)} %\n')
                     results.write('==============================\n')
                     
-                    command = f"python3 simple_rating_system.py --all no --team_1 {self.team_1} --team_2 {self.team_2}"
-                    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                    #my Simple Rating System
+                    # command = f"python3 simple_rating_system.py --all no --team_1 {self.team_1} --team_2 {self.team_2}"
+                    # process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
-                    for line in process.stdout:
-                        results.write(line)
+                    # for line in process.stdout:
+                    #     results.write(line)
                         
-                    process.wait()
+                    # process.wait()
                     del team_1_df, team_2_df
 
                 except Exception as e:
@@ -701,7 +809,7 @@ class deepCfbMulti():
     def run_analysis(self):
         self.split_classifier()
         self.multiclass_class()
-        self.deep_learn_features()
+        # self.deep_learn_features()
         if argv[1] == "test":
             self.test_forecast()
         else:
