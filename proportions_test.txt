@@ -1,0 +1,12 @@
+Both teams: 1.000, One team: 0.000
+Both teams: 0.500, One team: 0.500
+Both teams: 0.667, One team: 0.333
+Both teams: 0.500, One team: 0.500
+Both teams: 0.400, One team: 0.600
+RAM Full
+Both teams: 1.000, One team: 0.000
+Both teams: 1.000, One team: 0.500
+Both teams: 1.000, One team: 0.333
+Both teams: 1.000, One team: 0.500
+Both teams: 0.800, One team: 0.600
+Both teams: 0.667, One team: 0.667

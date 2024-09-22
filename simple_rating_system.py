@@ -31,14 +31,14 @@ def get_df(team):
         team = "sam-houston-state"
     if team == 'louisiana':
         team = 'louisiana-lafayette'
-    str_combine = 'https://www.sports-reference.com/cfb/schools/' + team + '/' + str(2023) + '/gamelog/'
-    team, opps  = data_for_srs(str_combine,team,2023)
+    str_combine = 'https://www.sports-reference.com/cfb/schools/' + team + '/' + str(2024) + '/gamelog/'
+    team, opps  = data_for_srs(str_combine,team,2024)
     return team, opps
 
 def teams_to_test():
     with open(join(getcwd(),'team_rankings_year.yaml')) as file:
             teams_dict_year = yaml.load(file, Loader=yaml.FullLoader)
-    teams_list = teams_dict_year[2023]
+    teams_list = teams_dict_year[2024]
     return teams_list
 
 def get_pt_diff_team_1(df):
