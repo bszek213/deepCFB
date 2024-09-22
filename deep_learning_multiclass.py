@@ -20,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape, arange, random, zeros, argmax, median, shape, exp
+from numpy import nan, array, reshape, arange, random, zeros, argmax, mean, shape, exp, var
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
@@ -753,12 +753,22 @@ class deepCfbMulti():
                 print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
                 idx += 1
     def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, team, n_simulations=10000):
+        #estimate a and b for beta dist
+        min_val, max_val = df.min(), df.max()
+        scaled_data = (df - min_val) / (max_val - min_val)
+        mean_val = mean(scaled_data)
+        variance = var(scaled_data)
+        if variance > 0:  #division by zero catch
+            a = mean_val * ((mean_val * (1 - mean_val)) / variance - 1)
+            b = (1 - mean_val) * ((mean_val * (1 - mean_val)) / variance - 1)
+        else:
+            a, b = 1, 1  #if variance is zero, fallback to uniform
         for _ in tqdm(range(n_simulations)):
             mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
                                 for col in df.columns]).T
             mc_sample_log = array([lognorm.rvs(s=df[col].std(), scale=exp(df[col].mean()))
                                 for col in df.columns]).T
-            a, b = 2, 5
+            
             mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
 
             #predictions
