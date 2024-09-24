@@ -189,7 +189,8 @@ class deepCfbMulti():
         self.x_regress = self.str_manipulations(self.x_regress)
         self.y_regress = self.str_manipulations(self.y_regress)
 
-        self.classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'] #add to this team_1_score and team_2_score
+        self.classifier_drop = ['team_1_outcome','team_2_outcome',
+                                'game_loc','team_1_score','team_2_score']
         self.y = self.all_data[['team_1_outcome','team_2_outcome']]
         self.x = self.all_data.drop(columns=self.classifier_drop)
 
@@ -268,7 +269,7 @@ class deepCfbMulti():
             tuner = RandomSearch(
                 lambda hp: build_classifier_with_batch_size(hp, input_shape),
                 objective='val_accuracy',
-                max_trials=350,
+                max_trials=250,
                 directory='classifier_multiclass',
                 project_name='classifier_multiclass_project',
                 overwrite=True
@@ -276,7 +277,7 @@ class deepCfbMulti():
 
             early_stop = EarlyStopping(monitor='val_loss', patience=30, mode='min', verbose=1)
             tuner.search(self.x_train, self.y_train, 
-                        epochs=100, batch_size=None, 
+                        epochs=200, batch_size=None, 
                         validation_data=(self.x_valid, self.y_valid),
                         callbacks=[early_stop]) 
             
@@ -289,7 +290,7 @@ class deepCfbMulti():
                     f.write(f'{key}: {value}\n')
                 f.write(f'best_batch_size: {best_batch_size}\n')
             history = best_model.fit(self.x_train, self.y_train, 
-                                     epochs=150, batch_size=int(best_batch_size), verbose=2,
+                                     epochs=200, batch_size=int(best_batch_size), verbose=2,
                                      validation_data=(self.x_test, self.y_test),
                                      callbacks=[early_stop])
             best_model.save(abs_path)
@@ -627,7 +628,7 @@ class deepCfbMulti():
                     opp_col = col + '_opp'
                     if opp_col in team_1_df_copy.columns:
                         team_1_df_copy[opp_col] = team_2_df_copy[col]
-                team_1_df_copy['team_2_score'] = team_2_df_copy['team_1_score']
+                #team_1_df_copy['team_2_score'] = team_2_df_copy['team_1_score']
 
                 X_std = self.scaler.transform(team_1_df_copy)
                 X_fa = self.fa.transform(X_std)
@@ -670,9 +671,9 @@ class deepCfbMulti():
                     anim = FuncAnimation(fig, update_plot, frames=n_simulations, interval=1, blit=True, repeat=False)
                     plt.show()
                 else:
-                    all_probas_norm, all_probas_log, all_probas_beta = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
+                    all_probas_norm, all_probas_log, all_probas_beta, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
                                                                                                  all_probas_log, all_probas_beta, 
-                                                                                                 'team_1',n_simulations)
+                                                                                                 'team_1',self.team_1, self.team_2, n_simulations)
                     # for _ in tqdm(range(n_simulations)):
                     #     mc_sample = array([norm.rvs(loc=team_1_df_copy[col].mean(), scale=team_1_df_copy[col].std()*3) 
                     #                     for col in team_1_df_copy.columns]).T
@@ -684,7 +685,7 @@ class deepCfbMulti():
                     opp_col = col + '_opp'
                     if opp_col in team_2_df.columns:
                         team_2_df[opp_col] = team_1_df[col]
-                team_2_df['team_2_score'] = team_1_df['team_1_score']
+                #team_2_df['team_2_score'] = team_1_df['team_1_score']
 
                 X_std_t2 = self.scaler.transform(team_2_df)
                 X_fa_t2 = self.fa.transform(X_std_t2)
@@ -693,9 +694,13 @@ class deepCfbMulti():
                 if layer_diff == True:
                     team_2_df = team_2_df.iloc[:, :num_layers]
 
-                all_probas_norm, all_probas_log, all_probas_beta = self.monte_carlo_sampling(team_2_df, all_probas_norm, 
+                all_probas_norm, all_probas_log, all_probas_beta, win_props_team_2 = self.monte_carlo_sampling(team_2_df, all_probas_norm, 
                                                                                                  all_probas_log, all_probas_beta, 
-                                                                                                 'team_2',n_simulations)
+                                                                                                 'team_2',self.team_1, self.team_2, n_simulations)
+                print('======================')
+                print(win_props_team_1)
+                print(win_props_team_2)
+                print('======================')
                 # for _ in tqdm(range(n_simulations)):
                 #     mc_sample = array([norm.rvs(loc=team_2_df[col].mean(), scale=team_2_df[col].std()*3) 
                 #                     for col in team_2_df.columns]).T
@@ -752,15 +757,20 @@ class deepCfbMulti():
             except Exception as e:
                 print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
                 idx += 1
-    def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, team, n_simulations=10000):
+    def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, team, team_1, team_2, n_simulations=10000):
+        #init the team wins
+        team1_wins_norm, team1_wins_log, team1_wins_beta = 0, 0, 0
+        team2_wins_norm, team2_wins_log, team2_wins_beta = 0, 0, 0
         #estimate a and b for beta dist
         min_val, max_val = df.min(), df.max()
         scaled_data = (df - min_val) / (max_val - min_val)
-        mean_val = mean(scaled_data)
-        variance = var(scaled_data)
-        if variance > 0:  #division by zero catch
+        mean_val = scaled_data.mean()
+        variance = scaled_data.var()
+        if (variance > 0).all():  #division by zero catch
             a = mean_val * ((mean_val * (1 - mean_val)) / variance - 1)
             b = (1 - mean_val) * ((mean_val * (1 - mean_val)) / variance - 1)
+            a = a.mean()
+            b = b.mean()
         else:
             a, b = 1, 1  #if variance is zero, fallback to uniform
         for _ in tqdm(range(n_simulations)):
@@ -781,12 +791,54 @@ class deepCfbMulti():
                 all_probas_norm += probas_norm[0]
                 all_probas_log += probas_log[0]
                 all_probas_beta += probas_beta[0]
+
+                #add how many times team_1 beat team_2
+                team1_wins_norm += probas_norm[0][0] > probas_norm[0][1]
+                team1_wins_log += probas_log[0][0] > probas_log[0][1]
+                team1_wins_beta += probas_beta[0][0] > probas_beta[0][1]
+                
+                team2_wins_norm += probas_norm[0][1] > probas_norm[0][0]
+                team2_wins_log += probas_log[0][1] > probas_log[0][0]
+                team2_wins_beta += probas_beta[0][1] > probas_beta[0][0]
             else:
                 all_probas_norm += probas_norm[0][::-1]
                 all_probas_log += probas_log[0][::-1]
                 all_probas_beta += probas_beta[0][::-1]
+
+                flip_norm = probas_norm[0][::-1]
+                flip_log = probas_log[0][::-1]
+                flip_beta = probas_beta[0][::-1]
+                
+                team1_wins_norm += flip_norm[0] > flip_norm[1]
+                team1_wins_log += flip_log[0] > flip_log[1]
+                team1_wins_beta += flip_beta[0] > flip_beta[1]
+                
+                team2_wins_norm += flip_norm[1] > flip_norm[0]
+                team2_wins_log += flip_log[1] > flip_log[0]
+                team2_wins_beta += flip_beta[1] > flip_beta[0]
         
-        return all_probas_norm, all_probas_log, all_probas_beta
+        #calculate win proportions
+        team1_win_prop_norm = team1_wins_norm / n_simulations
+        team1_win_prop_log = team1_wins_log / n_simulations
+        team1_win_prop_beta = team1_wins_beta / n_simulations
+        
+        team2_win_prop_norm = team2_wins_norm / n_simulations
+        team2_win_prop_log = team2_wins_log / n_simulations
+        team2_win_prop_beta = team2_wins_beta / n_simulations
+        
+        win_proportions = {
+            f'{team_1}': {
+                'norm': team1_win_prop_norm*100,
+                'log': team1_win_prop_log*100,
+                'beta': team1_win_prop_beta*100
+            },
+            f'{team_2}': {
+                'norm': team2_win_prop_norm*100,
+                'log': team2_win_prop_log*100,
+                'beta': team2_win_prop_beta*100
+            }
+        }
+        return all_probas_norm, all_probas_log, all_probas_beta, win_proportions
     # def predict_teams(self, teams_file='team_names_played_this_week.txt', results_file='results.txt'):
     #     try:
     #         with open(teams_file, 'r') as f:
