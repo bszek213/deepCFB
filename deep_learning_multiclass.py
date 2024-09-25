@@ -26,7 +26,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 # import subprocess
 # import yaml 
-from scipy.stats import norm, lognorm, beta
+# from scipy.stats import norm, lognorm, beta
 from tensorflow.keras import regularizers
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 import shutil
@@ -34,7 +34,8 @@ import math
 from gc import collect
 from psutil import virtual_memory
 from matplotlib.animation import FuncAnimation
-
+from fitter import Fitter
+from scipy.stats import norm, lognorm, beta, gamma, expon, uniform, weibull_min, weibull_max, pareto, t, chi2, triang, invgauss, genextreme, logistic, gumbel_r, gumbel_l, loggamma, powerlaw, rayleigh, laplace, cauchy
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
     if ram_percent >= 95:
@@ -619,6 +620,7 @@ class deepCfbMulti():
                 all_probas_norm = zeros(2)
                 all_probas_log = zeros(2)
                 all_probas_beta = zeros(2)
+                all_probas_best = zeros(2)
 
                 #team 1 processing and predictions
                 team_1_df_copy = team_1_df.copy()
@@ -671,8 +673,8 @@ class deepCfbMulti():
                     anim = FuncAnimation(fig, update_plot, frames=n_simulations, interval=1, blit=True, repeat=False)
                     plt.show()
                 else:
-                    all_probas_norm, all_probas_log, all_probas_beta, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
-                                                                                                 all_probas_log, all_probas_beta, 
+                    all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
+                                                                                                 all_probas_log, all_probas_beta, all_probas_best,
                                                                                                  'team_1',self.team_1, self.team_2, n_simulations)
                     # for _ in tqdm(range(n_simulations)):
                     #     mc_sample = array([norm.rvs(loc=team_1_df_copy[col].mean(), scale=team_1_df_copy[col].std()*3) 
@@ -694,8 +696,8 @@ class deepCfbMulti():
                 if layer_diff == True:
                     team_2_df = team_2_df.iloc[:, :num_layers]
 
-                all_probas_norm, all_probas_log, all_probas_beta, win_props_team_2 = self.monte_carlo_sampling(team_2_df, all_probas_norm, 
-                                                                                                 all_probas_log, all_probas_beta, 
+                all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_2 = self.monte_carlo_sampling(team_2_df, all_probas_norm, 
+                                                                                                 all_probas_log, all_probas_beta, all_probas_best,
                                                                                                  'team_2',self.team_1, self.team_2, n_simulations)
                 print('======================')
                 print(win_props_team_1)
@@ -720,6 +722,10 @@ class deepCfbMulti():
                 median_probas_beta = all_probas_beta / (n_simulations * 2)
                 predicted_class_beta = argmax(median_probas_beta)
                 predicted_winner_beta = self.team_1 if predicted_class_beta == 0 else self.team_2
+                #best dist
+                median_probas_best = all_probas_best / (n_simulations * 2)
+                predicted_class_best = argmax(median_probas_best)
+                predicted_winner_best = self.team_1 if predicted_class_best == 0 else self.team_2
 
                 #add results to list
                 results_dict = {
@@ -733,7 +739,10 @@ class deepCfbMulti():
                     'Predicted Winner Log': [predicted_winner_log],
                     'Team 1 Probability Beta': [round(median_probas_beta[0] * 100, 3)],
                     'Team 2 Probability Beta': [round(median_probas_beta[1] * 100, 3)],
-                    'Predicted Winner Beta': [predicted_winner_beta]
+                    'Predicted Winner Beta': [predicted_winner_beta],
+                    'Team 1 Probability Best': [round(median_probas_best[0] * 100, 3)],
+                    'Team 2 Probability Best': [round(median_probas_best[1] * 100, 3)],
+                    'Predicted Winner Best': [predicted_winner_best]
                 }
 
                 #update teams file by removing processed line
@@ -757,10 +766,75 @@ class deepCfbMulti():
             except Exception as e:
                 print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
                 idx += 1
-    def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, team, team_1, team_2, n_simulations=10000):
+
+    def find_best_distribution(self,data):
+        distributions = [
+            'norm', 'lognorm', 'beta', 'gamma', 'expon', 'uniform', 'weibull_min', 'weibull_max',
+            'pareto', 't', 'chi2', 'triang', 'invgauss', 'genextreme', 'logistic', 'gumbel_r', 'gumbel_l',
+            'loggamma', 'powerlaw', 'rayleigh', 'laplace', 'cauchy'
+        ]
+        n_samples = 1
+        f = Fitter(data, distributions=distributions)
+        f.fit()
+        best_dist = f.get_best(method='sumsquare_error')
+        dist_name = list(best_dist.keys())[0]  # Get the name of the best distribution
+        dist_params = best_dist[dist_name]     # Get the parameters of the best distribution
+
+        # Step 2: Generate samples from the best-fit distribution
+        if dist_name == 'norm':
+            samples = norm.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'lognorm':
+            samples = lognorm.rvs(s=dist_params['s'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'beta':
+            samples = beta.rvs(a=dist_params['a'], b=dist_params['b'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'gamma':
+            samples = gamma.rvs(a=dist_params['a'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'expon':
+            samples = expon.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'uniform':
+            samples = uniform.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'weibull_min':
+            samples = weibull_min.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'weibull_max':
+            samples = weibull_max.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'pareto':
+            samples = pareto.rvs(b=dist_params['b'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 't':
+            samples = t.rvs(df=dist_params['df'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'chi2':
+            samples = chi2.rvs(df=dist_params['df'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'triang':
+            samples = triang.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'invgauss':
+            samples = invgauss.rvs(mu=dist_params['mu'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'genextreme':
+            samples = genextreme.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'logistic':
+            samples = logistic.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'gumbel_r':
+            samples = gumbel_r.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'gumbel_l':
+            samples = gumbel_l.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'loggamma':
+            samples = loggamma.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'powerlaw':
+            samples = powerlaw.rvs(a=dist_params['a'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'rayleigh':
+            samples = rayleigh.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'laplace':
+            samples = laplace.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        elif dist_name == 'cauchy':
+            samples = cauchy.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        else:
+            raise ValueError(f"Distribution {dist_name} not handled.")
+
+        return samples, dist_name, dist_params
+
+    def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, team, team_1, team_2, n_simulations=10000):
         #init the team wins
-        team1_wins_norm, team1_wins_log, team1_wins_beta = 0, 0, 0
-        team2_wins_norm, team2_wins_log, team2_wins_beta = 0, 0, 0
+        team1_wins_norm, team1_wins_log, team1_wins_beta, team1_wins_best = 0, 0, 0, 0
+        team2_wins_norm, team2_wins_log, team2_wins_beta, team2_wins_best = 0, 0, 0, 0
+
         #estimate a and b for beta dist
         min_val, max_val = df.min(), df.max()
         scaled_data = (df - min_val) / (max_val - min_val)
@@ -773,24 +847,34 @@ class deepCfbMulti():
             b = b.mean()
         else:
             a, b = 1, 1  #if variance is zero, fallback to uniform
+
         for _ in tqdm(range(n_simulations)):
             mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
                                 for col in df.columns]).T
             mc_sample_log = array([lognorm.rvs(s=df[col].std(), scale=exp(df[col].mean()))
                                 for col in df.columns]).T
-            
             mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
+
+            #find the best dist for each feature
+            data_best_fit = []
+            for col in df.columns:
+                samples, dist_name, _ = self.find_best_distribution(df[col])
+                # print(f'best fit distribution: {dist_name}')
+                data_best_fit.append(samples)
+            mc_sample_best_fit = array(data_best_fit).reshape(1, -1)
 
             #predictions
             probas_norm = self.dnn_class.predict(mc_sample_norm.reshape(1, -1), verbose=0)
             probas_log = self.dnn_class.predict(mc_sample_log.reshape(1, -1), verbose=0)
             probas_beta = self.dnn_class.predict(mc_sample_beta.reshape(1, -1), verbose=0)
+            probas_best = self.dnn_class.predict(mc_sample_best_fit, verbose=0)
 
             #save probas
             if team == 'team_1':
                 all_probas_norm += probas_norm[0]
                 all_probas_log += probas_log[0]
                 all_probas_beta += probas_beta[0]
+                all_probas_best += probas_best[0]
 
                 #add how many times team_1 beat team_2
                 team1_wins_norm += probas_norm[0][0] > probas_norm[0][1]
@@ -804,6 +888,7 @@ class deepCfbMulti():
                 all_probas_norm += probas_norm[0][::-1]
                 all_probas_log += probas_log[0][::-1]
                 all_probas_beta += probas_beta[0][::-1]
+                all_probas_best += probas_best[0][::-1]
 
                 flip_norm = probas_norm[0][::-1]
                 flip_log = probas_log[0][::-1]
@@ -838,7 +923,7 @@ class deepCfbMulti():
                 'beta': team2_win_prop_beta*100
             }
         }
-        return all_probas_norm, all_probas_log, all_probas_beta, win_proportions
+        return all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_proportions
     # def predict_teams(self, teams_file='team_names_played_this_week.txt', results_file='results.txt'):
     #     try:
     #         with open(teams_file, 'r') as f:
