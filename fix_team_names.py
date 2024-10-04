@@ -55,7 +55,8 @@ def format_team_names():
                 "unlv":"nevada-las-vegas",
                 "smu":"southern-methodist",
                 "bowling-green":"bowling-green-state",
-                "san-josé-state": "san-jose-state"
+                "san-josé-state": "san-jose-state",
+                "louisiana": "louisiana-lafayette"
             }
             
             for abbr, full in abbr_dict.items():

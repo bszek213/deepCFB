@@ -1,0 +1,13 @@
+Team 1,Team 2,Team 1 Probability Norm,Team 2 Probability Norm,Predicted Winner Norm,Team 1 Probability Log,Team 2 Probability Log,Predicted Winner Log,Team 1 Probability Beta,Team 2 Probability Beta,Predicted Winner Beta,Team 1 Probability Best,Team 2 Probability Best,Predicted Winner Best
+texas-state,troy,49.427,50.573,troy,50.0,50.0,troy,50.0,50.0,troy,51.019,48.981,texas-state
+houston,texas-christian,43.358,56.642,texas-christian,49.999,50.001,texas-christian,50.0,50.0,houston,29.767,70.233,texas-christian
+michigan-state,oregon,22.538,77.462,oregon,49.997,50.003,oregon,45.695,54.305,oregon,2.435,97.565,oregon
+syracuse,nevada-las-vegas,45.911,54.089,nevada-las-vegas,49.999,50.001,nevada-las-vegas,50.0,50.0,syracuse,35.415,64.585,nevada-las-vegas
+ucla,penn-state,41.612,58.388,penn-state,49.997,50.003,penn-state,50.0,50.0,penn-state,31.737,68.263,penn-state
+missouri,texas-am,50.716,49.284,missouri,50.0,50.0,missouri,50.0,50.0,texas-am,52.181,47.819,missouri
+southern-methodist,louisville,50.469,49.531,southern-methodist,50.0,50.0,louisville,50.0,50.0,louisville,50.929,49.071,southern-methodist
+purdue,wisconsin,49.535,50.465,wisconsin,50.0,50.0,wisconsin,50.0,50.0,wisconsin,45.435,54.565,wisconsin
+massachusetts,northern-illinois,41.647,58.353,northern-illinois,49.998,50.002,northern-illinois,50.0,50.0,massachusetts,29.851,70.149,northern-illinois
+boston-college,virginia,49.184,50.816,virginia,50.0,50.0,virginia,50.0,50.0,boston-college,49.398,50.602,virginia
+pittsburgh,north-carolina,46.932,53.068,north-carolina,49.999,50.001,north-carolina,50.0,50.0,north-carolina,39.306,60.694,north-carolina
+wake-forest,north-carolina-state,53.408,46.592,wake-forest,50.0,50.0,wake-forest,50.0,50.0,wake-forest,62.669,37.331,wake-forest

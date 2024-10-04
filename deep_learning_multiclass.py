@@ -1,9 +1,9 @@
 #multiclass deep-learning on college football games
 from pandas import read_csv, DataFrame, concat, io, to_numeric, io
 from os.path import join, exists
-from os import getcwd, mkdir
+from os import getcwd, mkdir, environ
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.decomposition import FactorAnalysis, PCA
+from sklearn.decomposition import FactorAnalysis, PCA, KernelPCA
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -14,19 +14,16 @@ from keras_tuner.tuners import RandomSearch
 from tensorflow.keras.optimizers import Adam, RMSprop, SGD
 from keras.layers import Input, Dense, Dropout, BatchNormalization
 from keras.models import Model
-from pickle import dump, load
+import pickle
 from colorama import Fore, Style
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape, arange, random, zeros, argmax, mean, shape, exp, var
+from numpy import nan, array, reshape, arange, random, zeros, argmax, mean, shape, exp, var, save, load
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
-# import subprocess
-# import yaml 
-# from scipy.stats import norm, lognorm, beta
 from tensorflow.keras import regularizers
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 import shutil
@@ -36,6 +33,9 @@ from psutil import virtual_memory
 from matplotlib.animation import FuncAnimation
 from fitter import Fitter
 from scipy.stats import norm, lognorm, beta, gamma, expon, uniform, weibull_min, weibull_max, pareto, t, chi2, triang, invgauss, genextreme, logistic, gumbel_r, gumbel_l, loggamma, powerlaw, rayleigh, laplace, cauchy
+import joblib
+from sklearn.impute import SimpleImputer
+
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
     if ram_percent >= 95:
@@ -202,13 +202,26 @@ class deepCfbMulti():
         #Standardize
         self.scaler = StandardScaler() #MinMaxScaler(feature_range=(0,1))
         X_std = self.scaler.fit_transform(self.x)
+
         #FA
         # self.fa = FactorAnalysis(n_components=self.manual_comp)
         # X_fa = self.fa.fit_transform(X_std)
         # self.x_data = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
 
-        self.fa = PCA(n_components=0.95)  # Specify the variance ratio to keep
-        X_pca = self.fa.fit_transform(X_std)
+        #Kernel PCA
+        pca_data_path = 'k_pca_data.npy'
+        kernel_pca_model_path = 'kernel_pca_model.joblib'
+        if not exists(pca_data_path):
+            temp_pca = PCA(n_components=0.95)
+            temp_pca.fit_transform(X_std)
+            self.fa = KernelPCA(n_components=int(temp_pca.n_components_), kernel='rbf', n_jobs=1)
+            X_pca = self.fa.fit_transform(X_std)
+            save(pca_data_path, X_pca)
+            joblib.dump(self.fa, kernel_pca_model_path)
+        else:
+            X_pca = load(pca_data_path)
+            self.fa = joblib.load(kernel_pca_model_path)
+
         self.manual_comp = X_pca.shape[1]
         self.x_data = DataFrame(X_pca, columns=[f'FA{i+1}' for i in range(X_pca.shape[1])])
 
@@ -374,7 +387,7 @@ class deepCfbMulti():
         mse_error = mean_squared_error(y_test_np,y_pred)
         print(f'Linear Regression MSE: {mse_error}')
         with open(lin_abs_path, 'wb') as file:
-                dump(lin_model, file)
+                pickle.dump(lin_model, file)
         self.feature_linear_regression = lin_model 
         # else:
         # with open(lin_abs_path, 'rb') as file:
@@ -411,7 +424,7 @@ class deepCfbMulti():
 
             # Save the trained model to a file
             with open(lin_abs_path, 'wb') as file:
-                    dump(grid_search, file)
+                    pickle.dump(grid_search, file)
             self.feature_rf = grid_search
         else:
             with open(lin_abs_path, 'rb') as file:
@@ -593,20 +606,27 @@ class deepCfbMulti():
                 print(f'Currently making predictions for {self.team_1} vs. {self.team_2}')
 
                 #team data processing
-                team_1_df_2023 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/2023/gamelog/', self.team_1.lower(), 2023)
-                team_1_df_2024 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/2024/gamelog/', self.team_1.lower(), 2024)
-                team_1_df = concat([team_1_df_2023, team_1_df_2024])
+                team_1_df, team_2_df = DataFrame(), DataFrame()  # Initialize as empty DataFrames
 
-                team_2_df_2023 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/2023/gamelog/', self.team_2.lower(), 2023)
-                team_2_df_2024 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/2024/gamelog/', self.team_2.lower(), 2024)
-                team_2_df = concat([team_2_df_2023, team_2_df_2024])
-
+                for year in [2021, 2022, 2023, 2024]:
+                    # Collect data for team 1
+                    team_1_df_temp = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/{year}/gamelog/', self.team_1.lower(), year)
+                    team_1_df = concat([team_1_df, team_1_df_temp], ignore_index=True)  # Concatenate team 1 data
+                    
+                    # Collect data for team 2
+                    team_2_df_temp = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/{year}/gamelog/', self.team_2.lower(), year)
+                    team_2_df = concat([team_2_df, team_2_df_temp], ignore_index=True)
+                
                 #preprocess the data
                 team_1_df = self.str_manipulations(team_1_df)
                 team_2_df = self.str_manipulations(team_2_df)
                 team_1_df.drop(columns=self.classifier_drop, inplace=True)
                 team_2_df.drop(columns=self.classifier_drop, inplace=True)
-
+                team_1_df.dropna(inplace=True)
+                team_2_df.dropna(inplace=True)
+                print('============')
+                print(f'Shapes of data for each team: {team_1_df.shape} and {team_2_df.shape}')
+                print('============')
                 #handle length mismatch
                 length_difference = len(team_1_df) - len(team_2_df)
                 if length_difference > 0:
@@ -615,7 +635,7 @@ class deepCfbMulti():
                     team_2_df = team_2_df.iloc[-length_difference:]
 
                 #monte Carlo simulations
-                n_simulations = 10000
+                n_simulations = 20000
                 # all_probas = zeros(2)
                 all_probas_norm = zeros(2)
                 all_probas_log = zeros(2)
@@ -633,6 +653,8 @@ class deepCfbMulti():
                 #team_1_df_copy['team_2_score'] = team_2_df_copy['team_1_score']
 
                 X_std = self.scaler.transform(team_1_df_copy)
+                imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
+                X_std = imputer.fit_transform(X_std)
                 X_fa = self.fa.transform(X_std)
                 team_1_df_copy = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
                 team_1_df_copy.drop(self.non_normal_columns, axis=1, inplace=True)
@@ -690,6 +712,8 @@ class deepCfbMulti():
                 #team_2_df['team_2_score'] = team_1_df['team_1_score']
 
                 X_std_t2 = self.scaler.transform(team_2_df)
+                imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
+                X_std_t2 = imputer.fit_transform(X_std_t2)
                 X_fa_t2 = self.fa.transform(X_std_t2)
                 team_2_df = DataFrame(X_fa_t2, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
                 team_2_df.drop(self.non_normal_columns, axis=1, inplace=True)
@@ -781,6 +805,56 @@ class deepCfbMulti():
         dist_params = best_dist[dist_name]     # Get the parameters of the best distribution
 
         # Step 2: Generate samples from the best-fit distribution
+        # if dist_name == 'norm':
+        #     samples = norm.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'lognorm':
+        #     samples = lognorm.rvs(s=dist_params['s'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'beta':
+        #     samples = beta.rvs(a=dist_params['a'], b=dist_params['b'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'gamma':
+        #     samples = gamma.rvs(a=dist_params['a'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'expon':
+        #     samples = expon.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'uniform':
+        #     samples = uniform.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'weibull_min':
+        #     samples = weibull_min.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'weibull_max':
+        #     samples = weibull_max.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'pareto':
+        #     samples = pareto.rvs(b=dist_params['b'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 't':
+        #     samples = t.rvs(df=dist_params['df'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'chi2':
+        #     samples = chi2.rvs(df=dist_params['df'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'triang':
+        #     samples = triang.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'invgauss':
+        #     samples = invgauss.rvs(mu=dist_params['mu'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'genextreme':
+        #     samples = genextreme.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'logistic':
+        #     samples = logistic.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'gumbel_r':
+        #     samples = gumbel_r.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'gumbel_l':
+        #     samples = gumbel_l.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'loggamma':
+        #     samples = loggamma.rvs(c=dist_params['c'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'powerlaw':
+        #     samples = powerlaw.rvs(a=dist_params['a'], loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'rayleigh':
+        #     samples = rayleigh.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'laplace':
+        #     samples = laplace.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # elif dist_name == 'cauchy':
+        #     samples = cauchy.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
+        # else:
+        #     raise ValueError(f"Distribution {dist_name} not handled.")
+
+        return dist_name, dist_params
+    
+    def sample_from_distribution(self, dist_name, dist_params, n_samples=1):
         if dist_name == 'norm':
             samples = norm.rvs(loc=dist_params['loc'], scale=dist_params['scale'], size=n_samples)
         elif dist_name == 'lognorm':
@@ -828,7 +902,7 @@ class deepCfbMulti():
         else:
             raise ValueError(f"Distribution {dist_name} not handled.")
 
-        return samples, dist_name, dist_params
+        return samples
 
     def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, team, team_1, team_2, n_simulations=10000):
         #init the team wins
@@ -848,6 +922,17 @@ class deepCfbMulti():
         else:
             a, b = 1, 1  #if variance is zero, fallback to uniform
 
+        #find the best dist for each feature
+        data_best_fit = {}
+        axes = df.hist(bins=20, figsize=(10, 8))
+        plt.tight_layout()
+        plt.savefig('histogram_example_used_for_fitting.png')
+        plt.close()
+
+        for col in df.columns:
+            dist_name, dist_params = self.find_best_distribution(df[col])
+            data_best_fit[col] = (dist_name, dist_params) 
+
         for _ in tqdm(range(n_simulations)):
             mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
                                 for col in df.columns]).T
@@ -855,13 +940,13 @@ class deepCfbMulti():
                                 for col in df.columns]).T
             mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
 
-            #find the best dist for each feature
-            data_best_fit = []
+            #sample from distribution
+            mc_sample_best_fit = []
             for col in df.columns:
-                samples, dist_name, _ = self.find_best_distribution(df[col])
-                # print(f'best fit distribution: {dist_name}')
-                data_best_fit.append(samples)
-            mc_sample_best_fit = array(data_best_fit).reshape(1, -1)
+                dist_name, dist_params = data_best_fit[col]
+                sample = self.sample_from_distribution(dist_name, dist_params)
+                mc_sample_best_fit.append(sample)
+            mc_sample_best_fit = array(mc_sample_best_fit).reshape(1, -1)
 
             #predictions
             probas_norm = self.dnn_class.predict(mc_sample_norm.reshape(1, -1), verbose=0)
