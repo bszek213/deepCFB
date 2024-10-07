@@ -20,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 from collect_augment_data import collect_two_teams
-from numpy import nan, array, reshape, arange, random, zeros, argmax, mean, shape, exp, var, save, load
+from numpy import nan, array, reshape, arange, random, zeros, argmax, mean, shape, exp, var, save, load, concatenate
 from sys import argv
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
@@ -35,6 +35,7 @@ from fitter import Fitter
 from scipy.stats import norm, lognorm, beta, gamma, expon, uniform, weibull_min, weibull_max, pareto, t, chi2, triang, invgauss, genextreme, logistic, gumbel_r, gumbel_l, loggamma, powerlaw, rayleigh, laplace, cauchy
 import joblib
 from sklearn.impute import SimpleImputer
+from umap import UMAP
 
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
@@ -203,29 +204,46 @@ class deepCfbMulti():
         self.scaler = StandardScaler() #MinMaxScaler(feature_range=(0,1))
         X_std = self.scaler.fit_transform(self.x)
 
-        #FA
-        # self.fa = FactorAnalysis(n_components=self.manual_comp)
-        # X_fa = self.fa.fit_transform(X_std)
-        # self.x_data = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp+1)])
-
         #Kernel PCA
-        pca_data_path = 'k_pca_data.npy'
-        kernel_pca_model_path = 'kernel_pca_model.joblib'
-        if not exists(pca_data_path):
-            temp_pca = PCA(n_components=0.95)
-            temp_pca.fit_transform(X_std)
-            self.fa = KernelPCA(n_components=int(temp_pca.n_components_), kernel='rbf', n_jobs=1)
-            X_pca = self.fa.fit_transform(X_std)
-            save(pca_data_path, X_pca)
-            joblib.dump(self.fa, kernel_pca_model_path)
+        data_path = 'data.npy'
+        kernel_pca_model_path = join('processing_models','kernel_pca_model.joblib')
+        pca_model_path = join('processing_models','pca_model.joblib')
+        umapmodel_path = join('processing_models','umap_model.joblib')
+        fa_path = join('processing_models','fa_model.joblib')
+        if not exists(data_path):
+            self.pca = PCA(n_components=0.95)
+            X_pca_data = self.pca.fit_transform(X_std)
+
+            self.kpca = KernelPCA(n_components=int(self.pca.n_components_), kernel='rbf', n_jobs=1)
+            X_kpca_data = self.kpca.fit_transform(X_std)
+            
+            self.umap_reducer = UMAP(n_components=int(self.pca.n_components_), random_state=42)
+            X_umap_data = self.umap_reducer.fit_transform(X_std)
+
+            self.fa = FactorAnalysis(n_components=int(self.pca.n_components_))
+            X_fa = self.fa.fit_transform(X_std)
+            
+            X_combined = concatenate((X_pca_data, X_kpca_data, X_umap_data, X_fa), axis=1)
+
+            if not exists('processing_models'):
+                mkdir('processing_models')
+            save(data_path, X_combined)
+            joblib.dump(self.pca, pca_model_path)
+            joblib.dump(self.kpca, kernel_pca_model_path)
+            joblib.dump(self.umap_reducer, umapmodel_path)
+            joblib.dump(self.fa, fa_path)
         else:
-            X_pca = load(pca_data_path)
-            self.fa = joblib.load(kernel_pca_model_path)
+            X_combined = load(data_path)
+            self.fa = joblib.load(fa_path)
+            self.pca = joblib.load(pca_model_path)
+            self.kpca = joblib.load(kernel_pca_model_path)
+            self.umap_reducer = joblib.load(umapmodel_path)
+        
+        self.manual_comp = X_combined.shape[1]
+        
+        self.x_data = DataFrame(X_combined, columns=[f'FA{i+1}' for i in range(X_combined.shape[1])])
 
-        self.manual_comp = X_pca.shape[1]
-        self.x_data = DataFrame(X_pca, columns=[f'FA{i+1}' for i in range(X_pca.shape[1])])
-
-        print(f"PCA reduced the number of features from {len(self.x.columns)} to {X_pca.shape[1]}")
+        print(f"Ensemble feature extraction and reduction reduced the number of features from {len(self.x.columns)} to {X_combined.shape[1]}")
 
         num_columns = self.x_data.shape[1]
         grid_size = math.ceil(math.sqrt(num_columns))
@@ -655,7 +673,8 @@ class deepCfbMulti():
                 X_std = self.scaler.transform(team_1_df_copy)
                 imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
                 X_std = imputer.fit_transform(X_std)
-                X_fa = self.fa.transform(X_std)
+                X_fa = concatenate((self.umap_reducer.transform(X_std), self.kpca.transform(X_std), 
+                                    self.pca.transform(X_std), self.fa.transform(X_std)), axis=1)
                 team_1_df_copy = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
                 team_1_df_copy.drop(self.non_normal_columns, axis=1, inplace=True)
                 if layer_diff == True:
@@ -714,7 +733,8 @@ class deepCfbMulti():
                 X_std_t2 = self.scaler.transform(team_2_df)
                 imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
                 X_std_t2 = imputer.fit_transform(X_std_t2)
-                X_fa_t2 = self.fa.transform(X_std_t2)
+                X_fa_t2 = concatenate((self.umap_reducer.transform(X_std_t2), self.kpca.transform(X_std_t2), 
+                                    self.pca.transform(X_std_t2), self.fa.transform(X_std_t2)), axis=1)
                 team_2_df = DataFrame(X_fa_t2, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
                 team_2_df.drop(self.non_normal_columns, axis=1, inplace=True)
                 if layer_diff == True:
