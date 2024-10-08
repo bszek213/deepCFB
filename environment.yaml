@@ -1,0 +1,22 @@
+name: deep_cpu
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - scipy
+  - numpy
+  - joblib
+  - psutil
+  - pip
+  - pip:
+      - tqdm
+      - fitter
+      - colorama
+      - cfbd
+      - keras-tuner
+      - PyYAML
+      - umap-learn

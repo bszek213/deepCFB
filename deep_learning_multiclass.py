@@ -596,7 +596,7 @@ class deepCfbMulti():
 
     def predict_teams(self, teams_file='teams_played_this_week.txt', results_file='results.csv'):
         live_plot = False
-        num_layers = self.dnn_class.layers[0].input_shape[1]
+        num_layers = self.dnn_class.input_shape[1]
         if num_layers == self.manual_comp:
             print('Number of layers from standardization and model are the same')
             layer_diff = False
@@ -612,8 +612,8 @@ class deepCfbMulti():
         # results_list = []
 
         while idx < len(lines):
-            line = lines[idx].strip()
-            try:
+                line = lines[idx].strip()
+            # try:
                 teams = line.split(',')
                 if len(teams) != 2:
                     print(f'Invalid format in line: {line}')
@@ -807,9 +807,9 @@ class deepCfbMulti():
                 collect()
                 check_ram_usage()
 
-            except Exception as e:
-                print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
-                idx += 1
+            # except Exception as e:
+            #     print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
+            #     idx += 1
 
     def find_best_distribution(self,data):
         distributions = [
