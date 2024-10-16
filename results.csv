@@ -1,7 +1,2 @@
 Team 1,Team 2,Team 1 Probability Norm,Team 2 Probability Norm,Predicted Winner Norm,Team 1 Probability Log,Team 2 Probability Log,Predicted Winner Log,Team 1 Probability Beta,Team 2 Probability Beta,Predicted Winner Beta,Team 1 Probability Best,Team 2 Probability Best,Predicted Winner Best
-florida-international,liberty,52.381,47.619,florida-international,52.419,47.581,florida-international,55.138,44.862,florida-international,54.559,45.441,florida-international
-texas-el-paso,western-kentucky,62.874,37.126,texas-el-paso,50.424,49.576,texas-el-paso,44.858,55.142,western-kentucky,74.725,25.275,texas-el-paso
-memphis,south-florida,43.418,56.582,south-florida,50.711,49.289,memphis,37.925,62.075,south-florida,37.696,62.304,south-florida
-northwestern,maryland,55.303,44.697,northwestern,50.696,49.304,northwestern,45.521,54.479,maryland,60.28,39.72,northwestern
-nevada-las-vegas,utah-state,47.602,52.398,utah-state,50.157,49.843,nevada-las-vegas,43.249,56.751,utah-state,44.402,55.598,utah-state
-utah,arizona-state,45.424,54.576,arizona-state,47.09,52.91,arizona-state,49.658,50.342,arizona-state,40.077,59.923,arizona-state
+florida-international,texas-el-paso,47.148,52.852,texas-el-paso,,,florida-international,50.0,50.0,florida-international,48.829,51.171,texas-el-paso

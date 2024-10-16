@@ -1,1 +1,1 @@
-Number of features that the model will be trained on: 68
+Number of features that the model will be trained on: 16
