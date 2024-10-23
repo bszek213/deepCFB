@@ -373,6 +373,17 @@ def collect_two_teams(URL,team,year):
             final_df[column] = to_numeric(final_df[column], errors='coerce')
     return final_df
 
+def calculate_proxy_elo(features, current_elo, game_result, k=32):
+    pass_yds_diff = features['pass_yds'] - features['tot_yds_per_play_opp'] * features['tot_plays_opp']
+    rush_yds_diff = features['rush_yds'] - features['tot_yds_per_play_opp'] * features['tot_plays_opp']
+    turnovers_diff = features['turnovers']
+
+    performance_score = (0.5 * pass_yds_diff + 0.3 * rush_yds_diff - 0.2 * turnovers_diff)
+    expected_outcome = 1 / (1 + 10**((-performance_score) / 400))
+    new_elo = current_elo + k * (game_result - expected_outcome)
+
+    return new_elo
+
 def get_teams():
         year_list_find = []
         year_list = [2024,2023,2022,2021,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010]#,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000]
@@ -415,12 +426,20 @@ def get_teams():
                 x_feature_regress, y_feature_regress = [], []
                 all_teams = teams_dict_year[year]
                 for abv in tqdm(all_teams):  
+                    team_elo = 0
                     try:  
                         print('')#tqdm thing
                         print(f'current team: {abv}, year: {year}')
                         # team = all_teams(abv)
                         str_combine = 'https://www.sports-reference.com/cfb/schools/' + abv.lower() + '/' + str(year) + '/gamelog/'
                         df_inst = collect_two_teams(str_combine,abv.lower(),year)
+                        #calculate elo
+                        elo = []
+                        for index, row in df_inst   .iterrows():
+                            game_result = 1 if 'W' in row['game_result'] else 0
+                            team_elo = calculate_proxy_elo(row, team_elo, game_result)
+                            elo.append(team_elo)
+                        df_inst['team_elo'] = elo
                         # print(df_inst)
                         final_list.append(df_inst)
                         if len(df_inst) % 2 != 0:

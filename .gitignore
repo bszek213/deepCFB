@@ -19,6 +19,7 @@ feature_mlp_model.pkl
 classifier_xgb.pkl
 classifier_rf.pkl
 api_key.yaml
+testing.ipynb
 # C extensions
 *.so
 

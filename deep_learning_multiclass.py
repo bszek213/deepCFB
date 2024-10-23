@@ -36,7 +36,9 @@ from scipy.stats import norm, lognorm, beta, gamma, expon, uniform, weibull_min,
 import joblib
 from sklearn.impute import SimpleImputer
 from umap import UMAP
-from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.feature_selection import SelectKBest, mutual_info_classif, SelectFromModel
+from statsmodels.tsa.arima.model import ARIMA
+from pmdarima import auto_arima
 
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
@@ -192,8 +194,8 @@ class deepCfbMulti():
         self.x_regress = self.str_manipulations(self.x_regress)
         self.y_regress = self.str_manipulations(self.y_regress)
 
-        self.classifier_drop = ['team_1_outcome','team_2_outcome',
-                                'team_1_score','team_2_score'] #'game_loc',
+        self.classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'
+                                ] #'','team_1_score','team_2_score'
 
         self.y = self.all_data[['team_1_outcome','team_2_outcome']]
 
@@ -203,10 +205,6 @@ class deepCfbMulti():
         print(f'number of samples: {len(self.x)}')
         self.manual_comp = len(self.x.columns)
 
-        #Standardize
-        self.scaler = StandardScaler() #MinMaxScaler(feature_range=(0,1))
-        X_std = self.scaler.fit_transform(self.x)
-
         #Ensemble Analysis
         data_path = 'data.npy'
         kernel_pca_model_path = join('processing_models','kernel_pca_model.joblib')
@@ -214,13 +212,17 @@ class deepCfbMulti():
         umapmodel_path = join('processing_models','umap_model.joblib')
         selector_model_path = join('processing_models', 'selector_model.joblib')
         fa_path = join('processing_models','fa_model.joblib')
+        scaler_path = join('processing_models','scaler_model.joblib')
         if not exists(data_path):
+            #Standardize
+            self.scaler = StandardScaler() #MinMaxScaler(feature_range=(0,1))
+            X_std = self.scaler.fit_transform(self.x)
             # self.pca = PCA(n_components=0.95)
             # X_pca_data = self.pca.fit_transform(X_std)
 
             # self.kpca = KernelPCA(n_components=int(self.pca.n_components_), kernel='rbf', n_jobs=1)
-            # self.kpca = KernelPCA(n_components=int(X_std.shape[1] * 0.95), kernel='rbf', n_jobs=1)
-            self.kpca = KernelPCA(n_components=int(X_std.shape[1] * 0.95), kernel='poly', degree=3, coef0=1, gamma=1, n_jobs=1)
+            self.kpca = KernelPCA(n_components=int(X_std.shape[1] * 0.95), kernel='rbf', n_jobs=1)
+            # self.kpca = KernelPCA(n_components=int(X_std.shape[1] * 0.95), kernel='poly', degree=3, coef0=1, gamma=1, n_jobs=1)
             X_kpca_data = self.kpca.fit_transform(X_std)
             
             # self.umap_reducer = UMAP(n_components=int(self.pca.n_components_), random_state=42)
@@ -232,16 +234,14 @@ class deepCfbMulti():
             # X_combined = concatenate((X_pca_data, X_kpca_data, X_umap_data, X_fa), axis=1)
 
             #mututal information feature selection
+            # mi_scores = mutual_info_classif(X_kpca_data, where(self.y['team_1_outcome'] == 1, 0, 1))
+            # non_zero_mi_cols = mi_scores > 0
+            # x_selected_features = X_kpca_data[:, non_zero_mi_cols]
             mi_scores = mutual_info_classif(X_kpca_data, where(self.y['team_1_outcome'] == 1, 0, 1))
-            # non_zero_scores = mi_scores[mi_scores > 0]
-            # self.manual_comp = len(non_zero_scores)
-            sorted_scores = sort(mi_scores)[::-1]
-            cum_sums = cumsum(sorted_scores)
-            total_sum = cum_sums[-1]
-            k_95_var = argmax(cum_sums >= 0.95 * total_sum) + 1
-            self.selector = SelectKBest(score_func=mutual_info_classif, k=k_95_var)
-            print(f'data shape before mutual information: {X_kpca_data.shape}')
+            k = sum(mi_scores > 0) 
+            self.selector = SelectKBest(score_func=mutual_info_classif, k=k)
             x_selected_features = self.selector.fit_transform(X_kpca_data, where(self.y['team_1_outcome'] == 1, 0, 1))
+            print(f'data shape before mutual information: {X_kpca_data.shape}')
             print(f'data shape after mutual information: {x_selected_features.shape}')
 
             if not exists('processing_models'):
@@ -252,6 +252,7 @@ class deepCfbMulti():
             # joblib.dump(self.umap_reducer, umapmodel_path)
             # joblib.dump(self.fa, fa_path)
             joblib.dump(self.selector, selector_model_path)
+            joblib.dump(self.scaler, scaler_path)
         else:
             x_selected_features = load(data_path)
             # self.fa = joblib.load(fa_path)
@@ -259,6 +260,7 @@ class deepCfbMulti():
             self.kpca = joblib.load(kernel_pca_model_path)
             # self.umap_reducer = joblib.load(umapmodel_path)
             self.selector = joblib.load(selector_model_path)
+            self.scaler = joblib.load(scaler_path)
         
         self.manual_comp = x_selected_features.shape[1]
         
@@ -279,7 +281,6 @@ class deepCfbMulti():
         plt.tight_layout()
         plt.savefig('all_histograms.png', dpi=300)
         plt.close()
-
         # binary_columns = self.x_data.columns[self.x_data.nunique() == 1]
         # self.x_data = self.x_data.drop(columns=binary_columns)
 
@@ -707,42 +708,9 @@ class deepCfbMulti():
                 # team_1_df_copy.drop(self.non_normal_columns, axis=1, inplace=True)
                 if layer_diff == True:
                     team_1_df_copy = team_1_df_copy.iloc[:, :num_layers]
-
-                if live_plot == True:
-                    #animated plot of monte carlo simulations
-                    fig, ax = plt.subplots()
-                    line1, = ax.plot([], [],label=self.team_1)  # Use plot() for lines
-                    line2, = ax.plot([], [],label=self.team_2)
-                    ax.set_xlim(0, n_simulations)
-                    ax.set_ylim(0, 1)
-                    ax.set_xlabel('Monte Carlo Simulation')
-                    ax.set_ylabel('Probability')
-                    ax.set_title(f'{self.team_1} vs {self.team_2} Probabilities')
-                    ax.legend()
-
-                    x_data, y1_data, y2_data = [], [], []
-                    def update_plot(frame):
-                        nonlocal all_probas_norm, x_data, y1_data, y2_data  # Use nonlocal to modify all_probas from the outer scope
-
-                        # Team 1 processing and predictions
-                        mc_sample = array([norm.rvs(loc=team_1_df_copy[col].mean(), scale=team_1_df_copy[col].std()*3) 
-                                        for col in team_1_df_copy.columns]).T
-                        probas = self.dnn_class.predict(mc_sample.reshape(1, -1), verbose=0)
-                        all_probas_norm[0] += probas[0][0]
-                        all_probas_norm[1] += probas[0][1]
-                        x_data.append(frame)
-                        #running average
-                        y1_data.append(all_probas_norm[0] / (frame + 1))
-                        y2_data.append(all_probas_norm[1] / (frame + 1))
-
-                        line1.set_data(x_data, y1_data)
-                        line2.set_data(x_data, y2_data)
-                        return line1, line2
-
-                    anim = FuncAnimation(fig, update_plot, frames=n_simulations, interval=1, blit=True, repeat=False)
-                    plt.show()
-                else:
-                    all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
+                
+                #feature forecast and monte carlo sampling
+                all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
                                                                                                  all_probas_log, all_probas_beta, all_probas_best,
                                                                                                  'team_1',self.team_1, self.team_2, n_simulations)
                     # for _ in tqdm(range(n_simulations)):
@@ -961,105 +929,114 @@ class deepCfbMulti():
         team1_wins_norm, team1_wins_log, team1_wins_beta, team1_wins_best = 0, 0, 0, 0
         team2_wins_norm, team2_wins_log, team2_wins_beta, team2_wins_best = 0, 0, 0, 0
 
-        #estimate a and b for beta dist
-        min_val, max_val = df.min(), df.max()
-        scaled_data = (df - min_val) / (max_val - min_val)
-        mean_val = scaled_data.mean()
-        variance = scaled_data.var()
-        if (variance > 0).all():  #division by zero catch
-            a = mean_val * ((mean_val * (1 - mean_val)) / variance - 1)
-            b = (1 - mean_val) * ((mean_val * (1 - mean_val)) / variance - 1)
-            a = a.mean()
-            b = b.mean()
-        else:
-            a, b = 1, 1  #if variance is zero, fallback to uniform
-
         #find the best dist for each feature
         data_best_fit = {}
-        axes = df.hist(bins=20, figsize=(10, 8))
+        # axes = df.hist(bins=20, figsize=(10, 8))
+        axes = df.plot()
         plt.tight_layout()
         plt.savefig('histogram_example_used_for_fitting.png')
         plt.close()
 
-        for col in df.columns:
-            dist_name, dist_params = self.find_best_distribution(df[col])
-            data_best_fit[col] = (dist_name, dist_params) 
+        self.forecasts = {}
+        for column in df.columns:
+            # model = ARIMA(df[column], order=(1, 1, 1))
+            model = auto_arima(df[column], seasonal=False,
+                            suppress_warnings=True,
+                            stepwise=True,
+                            error_action="ignore") #13 week season  m=13,
+            forecast = model.predict(n_periods=1).values  # Forecast for the next game
+            # if column not in self.forecasts:
+            #     self.forecasts[column] = []
+            # self.forecasts[column].append(forecast)
+            self.forecasts[column] = forecast
+        forecasted_data = DataFrame(self.forecasts)
+        forecasted_pred = self.dnn_class.predict(forecasted_data.to_numpy().reshape(1, -1), verbose=0)
+        # print(self.forecasts)
+        # for col in df.columns:
+        #     plt.figure()
+        #     plt.plot(arange(0,len(df[column])),df[column])
+        #     plt.scatter([len(df)] * len(self.forecasts[column]),self.forecasts[column],color='green')
+        #     plt.show()
 
-        for _ in tqdm(range(n_simulations)):
-            mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
-                                for col in df.columns]).T
-            mc_sample_log = array([lognorm.rvs(s=df[col].std(), scale=exp(df[col].mean()))
-                                for col in df.columns]).T
-            mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
+        # for col in df.columns:
+        #     dist_name, dist_params = self.find_best_distribution(df[col])
+        #     data_best_fit[col] = (dist_name, dist_params) 
 
-            #sample from distribution
-            mc_sample_best_fit = []
-            for col in df.columns:
-                dist_name, dist_params = data_best_fit[col]
-                sample = self.sample_from_distribution(dist_name, dist_params)
-                mc_sample_best_fit.append(sample)
-            mc_sample_best_fit = array(mc_sample_best_fit).reshape(1, -1)
+        # for _ in tqdm(range(n_simulations)):
+        #     mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
+        #                         for col in df.columns]).T
+        #     mc_sample_log = array([lognorm.rvs(s=df[col].std(), scale=exp(df[col].mean()))
+        #                         for col in df.columns]).T
+        #     mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
 
-            #predictions
-            probas_norm = self.dnn_class.predict(mc_sample_norm.reshape(1, -1), verbose=0)
-            probas_log = self.dnn_class.predict(mc_sample_log.reshape(1, -1), verbose=0)
-            probas_beta = self.dnn_class.predict(mc_sample_beta.reshape(1, -1), verbose=0)
-            probas_best = self.dnn_class.predict(mc_sample_best_fit, verbose=0)
+        #     #sample from distribution
+        #     mc_sample_best_fit = []
+        #     for col in df.columns:
+        #         dist_name, dist_params = data_best_fit[col]
+        #         sample = self.sample_from_distribution(dist_name, dist_params)
+        #         mc_sample_best_fit.append(sample)
+        #     mc_sample_best_fit = array(mc_sample_best_fit).reshape(1, -1)
 
-            #save probas
-            if team == 'team_1':
-                all_probas_norm += probas_norm[0]
-                all_probas_log += probas_log[0]
-                all_probas_beta += probas_beta[0]
-                all_probas_best += probas_best[0]
+        #     #predictions
+        #     probas_norm = self.dnn_class.predict(mc_sample_norm.reshape(1, -1), verbose=0)
+        #     probas_log = self.dnn_class.predict(mc_sample_log.reshape(1, -1), verbose=0)
+        #     probas_beta = self.dnn_class.predict(mc_sample_beta.reshape(1, -1), verbose=0)
+        #     probas_best = self.dnn_class.predict(mc_sample_best_fit, verbose=0)
 
-                #add how many times team_1 beat team_2
-                team1_wins_norm += probas_norm[0][0] > probas_norm[0][1]
-                team1_wins_log += probas_log[0][0] > probas_log[0][1]
-                team1_wins_beta += probas_beta[0][0] > probas_beta[0][1]
+        #     #save probas
+        #     if team == 'team_1':
+        #         all_probas_norm += probas_norm[0]
+        #         all_probas_log += probas_log[0]
+        #         all_probas_beta += probas_beta[0]
+        #         all_probas_best += probas_best[0]
+
+        #         #add how many times team_1 beat team_2
+        #         team1_wins_norm += probas_norm[0][0] > probas_norm[0][1]
+        #         team1_wins_log += probas_log[0][0] > probas_log[0][1]
+        #         team1_wins_beta += probas_beta[0][0] > probas_beta[0][1]
                 
-                team2_wins_norm += probas_norm[0][1] > probas_norm[0][0]
-                team2_wins_log += probas_log[0][1] > probas_log[0][0]
-                team2_wins_beta += probas_beta[0][1] > probas_beta[0][0]
-            else:
-                all_probas_norm += probas_norm[0][::-1]
-                all_probas_log += probas_log[0][::-1]
-                all_probas_beta += probas_beta[0][::-1]
-                all_probas_best += probas_best[0][::-1]
+        #         team2_wins_norm += probas_norm[0][1] > probas_norm[0][0]
+        #         team2_wins_log += probas_log[0][1] > probas_log[0][0]
+        #         team2_wins_beta += probas_beta[0][1] > probas_beta[0][0]
+        #     else:
+        #         all_probas_norm += probas_norm[0][::-1]
+        #         all_probas_log += probas_log[0][::-1]
+        #         all_probas_beta += probas_beta[0][::-1]
+        #         all_probas_best += probas_best[0][::-1]
 
-                flip_norm = probas_norm[0][::-1]
-                flip_log = probas_log[0][::-1]
-                flip_beta = probas_beta[0][::-1]
+        #         flip_norm = probas_norm[0][::-1]
+        #         flip_log = probas_log[0][::-1]
+        #         flip_beta = probas_beta[0][::-1]
                 
-                team1_wins_norm += flip_norm[0] > flip_norm[1]
-                team1_wins_log += flip_log[0] > flip_log[1]
-                team1_wins_beta += flip_beta[0] > flip_beta[1]
+        #         team1_wins_norm += flip_norm[0] > flip_norm[1]
+        #         team1_wins_log += flip_log[0] > flip_log[1]
+        #         team1_wins_beta += flip_beta[0] > flip_beta[1]
                 
-                team2_wins_norm += flip_norm[1] > flip_norm[0]
-                team2_wins_log += flip_log[1] > flip_log[0]
-                team2_wins_beta += flip_beta[1] > flip_beta[0]
+        #         team2_wins_norm += flip_norm[1] > flip_norm[0]
+        #         team2_wins_log += flip_log[1] > flip_log[0]
+        #         team2_wins_beta += flip_beta[1] > flip_beta[0]
         
-        #calculate win proportions
-        team1_win_prop_norm = team1_wins_norm / n_simulations
-        team1_win_prop_log = team1_wins_log / n_simulations
-        team1_win_prop_beta = team1_wins_beta / n_simulations
+        # #calculate win proportions
+        # team1_win_prop_norm = team1_wins_norm / n_simulations
+        # team1_win_prop_log = team1_wins_log / n_simulations
+        # team1_win_prop_beta = team1_wins_beta / n_simulations
         
-        team2_win_prop_norm = team2_wins_norm / n_simulations
-        team2_win_prop_log = team2_wins_log / n_simulations
-        team2_win_prop_beta = team2_wins_beta / n_simulations
+        # team2_win_prop_norm = team2_wins_norm / n_simulations
+        # team2_win_prop_log = team2_wins_log / n_simulations
+        # team2_win_prop_beta = team2_wins_beta / n_simulations
         
-        win_proportions = {
-            f'{team_1}': {
-                'norm': team1_win_prop_norm*100,
-                'log': team1_win_prop_log*100,
-                'beta': team1_win_prop_beta*100
-            },
-            f'{team_2}': {
-                'norm': team2_win_prop_norm*100,
-                'log': team2_win_prop_log*100,
-                'beta': team2_win_prop_beta*100
-            }
-        }
+        # win_proportions = {
+        #     f'{team_1}': {
+        #         'norm': team1_win_prop_norm*100,
+        #         'log': team1_win_prop_log*100,
+        #         'beta': team1_win_prop_beta*100
+        #     },
+        #     f'{team_2}': {
+        #         'norm': team2_win_prop_norm*100,
+        #         'log': team2_win_prop_log*100,
+        #         'beta': team2_win_prop_beta*100
+        #     }
+        # }
         return all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_proportions
     # def predict_teams(self, teams_file='team_names_played_this_week.txt', results_file='results.txt'):
     #     try:

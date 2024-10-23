@@ -1,12 +1,3 @@
-georgia-state,marshall
-boston-college,virginia-tech
-florida-state,duke
-oregon,purdue
-oklahoma-state,brigham-young
-fresno-state,nevada
-miami-fl,louisville
-virginia,clemson
-nebraska,indiana
 auburn,missouri
 east-carolina,army
 wisconsin,northwestern

@@ -1,2 +1,11 @@
 Team 1,Team 2,Team 1 Probability Norm,Team 2 Probability Norm,Predicted Winner Norm,Team 1 Probability Log,Team 2 Probability Log,Predicted Winner Log,Team 1 Probability Beta,Team 2 Probability Beta,Predicted Winner Beta,Team 1 Probability Best,Team 2 Probability Best,Predicted Winner Best
 florida-international,texas-el-paso,47.148,52.852,texas-el-paso,,,florida-international,50.0,50.0,florida-international,48.829,51.171,texas-el-paso
+georgia-state,marshall,50.276,49.724,georgia-state,,,georgia-state,50.0,50.0,georgia-state,54.264,45.736,georgia-state
+boston-college,virginia-tech,48.851,51.149,virginia-tech,,,boston-college,50.0,50.0,boston-college,48.503,51.497,virginia-tech
+florida-state,duke,46.589,53.411,duke,,,florida-state,50.0,50.0,florida-state,40.216,59.784,duke
+oregon,purdue,46.775,53.225,purdue,,,oregon,50.0,50.0,oregon,40.506,59.494,purdue
+oklahoma-state,brigham-young,46.919,53.081,brigham-young,,,oklahoma-state,50.0,50.0,oklahoma-state,47.29,52.71,brigham-young
+fresno-state,nevada,44.552,55.448,nevada,,,fresno-state,50.0,50.0,fresno-state,41.301,58.699,nevada
+miami-fl,louisville,46.014,53.986,louisville,,,miami-fl,50.0,50.0,miami-fl,47.22,52.78,louisville
+virginia,clemson,45.61,54.39,clemson,,,virginia,50.0,50.0,virginia,41.6,58.4,clemson
+nebraska,indiana,51.358,48.642,nebraska,,,nebraska,50.0,50.0,nebraska,53.187,46.813,nebraska
