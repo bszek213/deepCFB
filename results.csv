@@ -1,11 +1,26 @@
-Team 1,Team 2,Team 1 Probability Norm,Team 2 Probability Norm,Predicted Winner Norm,Team 1 Probability Log,Team 2 Probability Log,Predicted Winner Log,Team 1 Probability Beta,Team 2 Probability Beta,Predicted Winner Beta,Team 1 Probability Best,Team 2 Probability Best,Predicted Winner Best
-florida-international,texas-el-paso,47.148,52.852,texas-el-paso,,,florida-international,50.0,50.0,florida-international,48.829,51.171,texas-el-paso
-georgia-state,marshall,50.276,49.724,georgia-state,,,georgia-state,50.0,50.0,georgia-state,54.264,45.736,georgia-state
-boston-college,virginia-tech,48.851,51.149,virginia-tech,,,boston-college,50.0,50.0,boston-college,48.503,51.497,virginia-tech
-florida-state,duke,46.589,53.411,duke,,,florida-state,50.0,50.0,florida-state,40.216,59.784,duke
-oregon,purdue,46.775,53.225,purdue,,,oregon,50.0,50.0,oregon,40.506,59.494,purdue
-oklahoma-state,brigham-young,46.919,53.081,brigham-young,,,oklahoma-state,50.0,50.0,oklahoma-state,47.29,52.71,brigham-young
-fresno-state,nevada,44.552,55.448,nevada,,,fresno-state,50.0,50.0,fresno-state,41.301,58.699,nevada
-miami-fl,louisville,46.014,53.986,louisville,,,miami-fl,50.0,50.0,miami-fl,47.22,52.78,louisville
-virginia,clemson,45.61,54.39,clemson,,,virginia,50.0,50.0,virginia,41.6,58.4,clemson
-nebraska,indiana,51.358,48.642,nebraska,,,nebraska,50.0,50.0,nebraska,53.187,46.813,nebraska
+Team 1,Team 2,Team 1 Probability,Team 2 Probability
+georgia-southern,old-dominion,33.191,66.809
+syracuse,pittsburgh,86.7485,13.2515
+louisville,boston-college,91.763,8.237
+boise-state,nevada-las-vegas,58.4765,41.5235
+rutgers,southern-california,72.2345,27.7655
+nebraska,ohio-state,0.3085,99.6915
+notre-dame,navy,39.706,60.294
+washington,indiana,0.09,99.91
+oklahoma,mississippi,1.3450000000000002,98.655
+georgia-tech,virginia-tech,16.314,83.686
+north-carolina,virginia,40.059,59.941
+buffalo,ohio,92.6705,7.3295
+charlotte,memphis,2.476,97.524
+tulane,north-texas,72.7,27.3
+arkansas,mississippi-state,49.4545,50.5455
+georgia-state,appalachian-state,86.46700000000001,13.533
+central-michigan,miami-oh,20.1705,79.8295
+temple,east-carolina,38.823,61.177
+illinois,oregon,8.1635,91.8365
+brigham-young,central-florida,97.607,2.393
+missouri,alabama,88.253,11.747
+northwestern,iowa,4.2845,95.7155
+maryland,minnesota,32.255,67.745
+rice,connecticut,2.684,97.316
+wake-forest,stanford,89.09700000000001,10.903
