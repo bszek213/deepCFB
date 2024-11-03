@@ -41,6 +41,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from pmdarima import auto_arima
 from collections import defaultdict
 import numpy as np
+import traceback
 
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
@@ -244,7 +245,7 @@ def monte_carlo_sim(final_dict_1_dn,dnn_class,n_simulations=10000):
     for key in list(final_dict_1_dn.keys()):
         mu = final_dict_1_dn[key]['mu']
         std = final_dict_1_dn[key]['std']
-        dict_data_monte[key] = np.random.normal(loc=mu, scale=std * 5000000, size=n_simulations)
+        dict_data_monte[key] = np.random.normal(loc=mu, scale=std * 5e20, size=n_simulations)
     
     df_monte = DataFrame(dict_data_monte)
     list_temp_1, list_temp_2 = [], []
@@ -611,7 +612,7 @@ class deepCfbMulti():
                 team_2_df = team_2_df.iloc[-length_difference:]
 
             #Monte Carlo simulations
-            n_simulations = 10000
+            n_simulations = 20000
             all_probas_both_teams = zeros(2)
             all_probas_just_team_1 = zeros(2)
 
@@ -737,8 +738,9 @@ class deepCfbMulti():
                     continue
 
                 self.team_1, self.team_2 = teams
+                print('================================================================')
                 print(f'Currently making predictions for {self.team_1} vs. {self.team_2}')
-
+                print('================================================================')
                 #team data processing
                 # team_1_df, team_2_df = DataFrame(), DataFrame()  # Initialize as empty DataFrames
 
@@ -771,23 +773,33 @@ class deepCfbMulti():
                         df_list_1.append(team_1_df_temp)
                         df_list_2.append(team_2_df_temp)
                     except Exception as e:
-                        print(e)
+                        traceback.print_exc()
 
                 classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'] #'',
                 df_list_1_w_opp = add_opp(df_list_1,df_list_2)
+                df_list_1_w_opp = [df for df in df_list_1_w_opp if not df.empty]
+                if len(df_list_1_w_opp) < 7:
+                    print('=========================')
+                    print('Removed an empty df')
+                    print('=========================')
                 final_dict_1 = bayes_calc(df_list_1_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
                 df_list_2_w_opp = add_opp(df_list_2,df_list_1)
+                df_list_2_w_opp = [df for df in df_list_2_w_opp if not df.empty]
+                if len(df_list_1_w_opp) < 7:
+                    print('=========================')
+                    print('df_list_2_w_opp an empty df')
+                    print('=========================')
                 final_dict_2 = bayes_calc(df_list_2_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
 
                 final_dict_1_dn = final_dict_1[list(final_dict_1.keys())[-1]]
                 final_dict_2_dn = final_dict_2[list(final_dict_2.keys())[-1]]
 
-                n_simulations = 10000
-                outcome_team_1, outcome_team_2 = monte_carlo_sim(final_dict_1_dn,self.dnn_class,n_simulations)
-                outcome_team_1_2nd, outcome_team_2_2nd = monte_carlo_sim(final_dict_2_dn,self.dnn_class,n_simulations)
+                n_simulations = 20000
+                outcome_team_1, outcome_team_2 = monte_carlo_sim(final_dict_1_dn,n_simulations)
+                outcome_team_2_2nd, outcome_team_1_2nd = monte_carlo_sim(final_dict_2_dn,n_simulations)
 
-                outcome_1 = np.mean([round(outcome_team_1[0] * 100, 3),round(outcome_team_2_2nd[0] * 100, 3)])
-                outcome_2 = np.mean([round(outcome_team_2[0] * 100, 3),round(outcome_team_1_2nd[0] * 100, 3)])
+                outcome_1 = np.mean([round(np.mean(outcome_team_1)*100,3),round(np.mean(outcome_team_1_2nd)*100,3)])
+                outcome_2 = np.mean([round(np.mean(outcome_team_2)*100,3),round(np.mean(outcome_team_2_2nd)*100,3)])
                 results_dict = {
                     'Team 1': [self.team_1],
                     'Team 2': [self.team_2],
