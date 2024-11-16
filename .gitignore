@@ -20,6 +20,8 @@ classifier_xgb.pkl
 classifier_rf.pkl
 api_key.yaml
 testing.ipynb
+get_bet.py
+
 # C extensions
 *.so
 

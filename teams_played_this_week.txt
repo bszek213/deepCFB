@@ -1,1 +1,16 @@
-clemson,louisville
+missouri,south-carolina
+arkansas-state,georgia-state
+rutgers,maryland
+boise-state,san-jose-state
+arizona-state,kansas-state
+south-alabama,louisiana-lafayette
+southern-mississippi,texas-state
+oregon,wisconsin
+tennessee,georgia
+new-mexico-state,texas-am
+cincinnati,iowa-state
+wake-forest,north-carolina
+alabama-birmingham,memphis
+washington-state,new-mexico
+kansas,brigham-young
+san-diego-state,nevada-las-vegas

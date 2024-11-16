@@ -1,7 +1,7 @@
 #multiclass deep-learning on college football games
 from pandas import read_csv, DataFrame, concat, io, to_numeric, io
 from os.path import join, exists
-from os import getcwd, mkdir, environ
+from os import getcwd, mkdir, environ, makedirs
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import FactorAnalysis, PCA, KernelPCA
 from sklearn.model_selection import train_test_split
@@ -42,6 +42,7 @@ from pmdarima import auto_arima
 from collections import defaultdict
 import numpy as np
 import traceback
+import seaborn as sns
 
 def check_ram_usage_txt(txtfile):
     ram_percent = virtual_memory().percent
@@ -239,22 +240,159 @@ def bayes_calc(df_list_1,classifier_drop, selector,kpca,scaler):
             dict_post[val][i]['mu'], dict_post[val][i]['std'] = bayesian_update(dict_prior[val][i]['mu'], dict_prior[val][i]['std'], updated_results)
     return dict_post 
 
-def monte_carlo_sim(final_dict_1_dn,dnn_class,n_simulations=10000):
-    dict_data_monte = {}
 
+
+def monte_carlo_sim(final_dict_1_dn,dnn_class,actual_winner=None,team_1=None,team_2=None,pred_type='ewm',n_simulations=5000):
+    makedirs('predictions',exist_ok=True)
+    dict_data_monte = {}
+    list_final_1, list_final_2 = [], []
     for key in list(final_dict_1_dn.keys()):
         mu = final_dict_1_dn[key]['mu']
         std = final_dict_1_dn[key]['std']
-        dict_data_monte[key] = np.random.normal(loc=mu, scale=std * 5e20, size=n_simulations)
-    
+        dict_data_monte[key] = np.random.normal(loc=mu, scale=std, size=n_simulations)
+
     df_monte = DataFrame(dict_data_monte)
+    # plt.hist(df_monte[df_monte.columns[0]])
+    # plt.show()
     list_temp_1, list_temp_2 = [], []
     for index, row in tqdm(df_monte.iterrows()):
         row_array = row.values
         out = dnn_class.predict(row_array.reshape(1, -1), verbose=0)
         list_temp_1.append(out[0][0])
         list_temp_2.append(out[0][1])
-    return list_temp_1, list_temp_2
+    list_final_1.append(round(np.mean(list_temp_1),3))
+    list_final_2.append(round(np.mean(list_temp_2),3))
+
+    df_monte['prob_class_0'] = list_temp_1
+    df_monte['prob_class_1'] = list_temp_2
+
+    # Determine predicted winner for each simulation
+    df_monte['predicted_winner'] = np.where(df_monte['prob_class_1'] > df_monte['prob_class_0'], 1, 0)
+    
+    if actual_winner != None:
+        # Add column to indicate correct prediction
+        df_monte['is_correct'] = np.where(df_monte['predicted_winner'] == actual_winner, 1, 0)
+
+        feature_columns = df_monte.columns.difference(['prob_class_0', 'prob_class_1', 'predicted_winner', 'is_correct'])
+        n_features = len(feature_columns)
+        n_cols = 3  # Number of columns in the plot grid
+        n_rows = (n_features // n_cols) + (n_features % n_cols > 0)
+
+        plt.figure(figsize=(15, n_rows * 4))
+
+        for idx, feature in enumerate(feature_columns, start=1):
+            plt.subplot(n_rows, n_cols, idx)
+
+            sns.histplot(df_monte[feature], color='blue', label='normal', kde=True, bins=30)
+            #correct predictions in green
+            sns.histplot(df_monte[df_monte['is_correct'] == 1][feature], color='green', label='Correct', kde=True, bins=30)
+
+            plt.title(f"Feature: {feature}")
+            plt.xlabel("Value")
+            plt.ylabel("Frequency")
+            plt.legend()
+
+        plt.suptitle(f"Monte Carlo Simulation {pred_type}")
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(f'figures/correct_predictions_{pred_type}.png')
+        plt.close()
+    else:
+        first_feature = df_monte.columns[0]
+        plt.figure(figsize=(10, 6))
+
+        sns.histplot(
+            df_monte[first_feature],
+            color='grey', label='Full Distribution', kde=True, bins=50, alpha=0.5
+        )
+        
+        sns.histplot(
+            df_monte[df_monte['predicted_winner'] == 0][first_feature],
+            color='red', label=f'{team_1} Wins', kde=True, bins=50
+        )
+        
+        sns.histplot(
+            df_monte[df_monte['predicted_winner'] == 1][first_feature],
+            color='blue', label=f'{team_2} Wins', kde=True, bins=50
+        )
+        
+        plt.title(f"Histogram of {first_feature} - Team Wins Distribution")
+        plt.xlabel("Feature Value")
+        plt.ylabel("Frequency")
+        plt.legend()
+        
+        plt.savefig(f'predictions/first_feature_wins_histogram_{pred_type}_{team_1}.png')
+        plt.close()
+
+    return list_final_1, list_final_2, np.sum(df_monte['predicted_winner'] == 0) / n_simulations, np.sum(df_monte['predicted_winner'] == 1) / n_simulations
+
+# def monte_carlo_sim(final_dict_1_dn,dnn_class,n_simulations=5000):
+#     dict_data_monte = {}
+#     # std_mult = [19448624389.373577,10000000.0,441005945.4176732,19448624389.373577,171132830.41617775]
+#     # min_value = np.log10(min(std_mult))
+#     # max_value = np.log10(max(std_mult))
+#     # num_points = int(len(std_mult) * 1.5) # You can set this to any number of points you want
+#     # log_scale = np.logspace(min_value, max_value, num=num_points)
+#     list_final_1, list_final_2 = [] , []
+#     # for multi in tqdm(log_scale):
+#     for key in list(final_dict_1_dn.keys()):
+#         mu = final_dict_1_dn[key]['mu']
+#         std = final_dict_1_dn[key]['std']
+#         dict_data_monte[key] = np.random.normal(loc=mu, scale=std * 1, size=n_simulations)
+        
+#     df_monte = DataFrame(dict_data_monte)
+#     list_temp_1, list_temp_2 = [], []
+#     for index, row in tqdm(df_monte.iterrows()):
+#         row_array = row.values
+#         out = dnn_class.predict(row_array.reshape(1, -1), verbose=0)
+#         list_temp_1.append(out[0][0])
+#         list_temp_2.append(out[0][1])
+#     list_final_1.append(np.mean(list_temp_1))
+#     list_final_2.append(np.mean(list_temp_2))
+#     return list_final_1, list_final_2
+
+def kalman_filter_update(data, initial_mu, initial_std, process_var=1e-3, measurement_var=1e-2):
+    kalman_results = {}
+    
+    #measurement variance
+    ewm_smoothed = data.ewm(span=3).mean()
+    residuals = data - ewm_smoothed
+    measurement_var = residuals.var().mean()
+
+    #process variance
+    smoothed_data = data.ewm(span=3).mean()
+    process_diff = smoothed_data.diff().dropna()
+    process_var = process_diff.var().mean()
+
+    #init each feature's mean and variance
+    for feature in data.columns:
+        mu = initial_mu[feature]
+        var = initial_std[feature]**2  # Variance is the square of std deviation
+        kalman_results[feature] = {'mu': mu, 'var': var}
+
+    #run Kalman Filter
+    for i in range(len(data)):
+        for feature in data.columns:
+            #measurement update
+            measurement = data[feature].iloc[i]
+            pred_mu = kalman_results[feature]['mu']
+
+            #predicted variance with process noise
+            pred_var = kalman_results[feature]['var'] + process_var  
+            
+            kalman_gain = pred_var / (pred_var + measurement_var)
+            updated_mu = pred_mu + kalman_gain * (measurement - pred_mu)
+            updated_var = (1 - kalman_gain) * pred_var
+            
+            #update the Kalman filter
+            kalman_results[feature] = {'mu': updated_mu, 'var': updated_var}
+
+    #final mu and std for each feature
+    final_dict_1_dn = {
+        feature: {'mu': kalman_results[feature]['mu'], 'std': np.sqrt(kalman_results[feature]['var'])}
+        for feature in data.columns
+    }
+    
+    return final_dict_1_dn
 
 class deepCfbMulti():
     def __init__(self):
@@ -753,7 +891,7 @@ class deepCfbMulti():
                 #     team_2_df_temp = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/{year}/gamelog/', self.team_2.lower(), year)
                 #     team_2_df = concat([team_2_df, team_2_df_temp], ignore_index=True)
                 df_list_1, df_list_2 = [], []
-                for year in tqdm([2018, 2019, 2020, 2021, 2022, 2023, 2024]):
+                for year in tqdm([2023, 2024]): #2018, 2019, 2020, 2021, 2022, 
                     try:
                         team_1_df_temp = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/{year}/gamelog/', self.team_1.lower(), year)
                         team_2_df_temp = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/{year}/gamelog/', self.team_2.lower(), year)
@@ -775,36 +913,95 @@ class deepCfbMulti():
                     except Exception as e:
                         traceback.print_exc()
 
-                classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'] #'',
+                # classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'] #'',
                 df_list_1_w_opp = add_opp(df_list_1,df_list_2)
                 df_list_1_w_opp = [df for df in df_list_1_w_opp if not df.empty]
-                if len(df_list_1_w_opp) < 7:
+                if len(df_list_1_w_opp) < 2:
                     print('=========================')
                     print('Removed an empty df')
                     print('=========================')
-                final_dict_1 = bayes_calc(df_list_1_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
+
+                #Kalman filter team 1
+                df_curr = str_manipulations(concat(df_list_1_w_opp, ignore_index=True))
+                df_curr = df_curr.drop(columns=self.classifier_drop)
+
+                x_curr = self.selector.transform(self.kpca.transform(self.scaler.transform(df_curr)))
+                x_curr = DataFrame(x_curr)
+                ewm_mean = x_curr.ewm(span=3).mean().iloc[-1]
+                ewm_std = x_curr.ewm(span=3).std().iloc[-1]
+                final_dict_1_dn_ewm = {}
+                for col in ewm_mean.index:
+                    final_dict_1_dn_ewm[col] = {
+                        'mu': ewm_mean[col],
+                        'std': ewm_std[col]
+                    }
+                final_dict_1_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
+                # final_dict_1 = bayes_calc(df_list_1_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
+
                 df_list_2_w_opp = add_opp(df_list_2,df_list_1)
                 df_list_2_w_opp = [df for df in df_list_2_w_opp if not df.empty]
-                if len(df_list_1_w_opp) < 7:
+                if len(df_list_2_w_opp) < 2:
                     print('=========================')
                     print('df_list_2_w_opp an empty df')
                     print('=========================')
-                final_dict_2 = bayes_calc(df_list_2_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
+                
+                #Kalman filter team 2
+                df_curr_2 = str_manipulations(concat(df_list_2_w_opp, ignore_index=True))
+                df_curr_2 = df_curr_2.drop(columns=self.classifier_drop)
 
-                final_dict_1_dn = final_dict_1[list(final_dict_1.keys())[-1]]
-                final_dict_2_dn = final_dict_2[list(final_dict_2.keys())[-1]]
+                x_curr_2 = self.selector.transform(self.kpca.transform(self.scaler.transform(df_curr_2)))
+                x_curr_2 = DataFrame(x_curr_2)
+                ewm_mean = x_curr.ewm(span=3).mean().iloc[-1]
+                ewm_std = x_curr.ewm(span=3).std().iloc[-1]
+                final_dict_2_dn_ewm = {}
+                for col in ewm_mean.index:
+                    final_dict_2_dn_ewm[col] = {
+                        'mu': ewm_mean[col],
+                        'std': ewm_std[col]
+                    }
+                final_dict_2_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
+                # final_dict_2 = bayes_calc(df_list_2_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
 
-                n_simulations = 20000
-                outcome_team_1, outcome_team_2 = monte_carlo_sim(final_dict_1_dn,n_simulations)
-                outcome_team_2_2nd, outcome_team_1_2nd = monte_carlo_sim(final_dict_2_dn,n_simulations)
+                # final_dict_1_dn = final_dict_1[list(final_dict_1.keys())[-1]]
+                # final_dict_2_dn = final_dict_2[list(final_dict_2.keys())[-1]]
 
-                outcome_1 = np.mean([round(np.mean(outcome_team_1)*100,3),round(np.mean(outcome_team_1_2nd)*100,3)])
-                outcome_2 = np.mean([round(np.mean(outcome_team_2)*100,3),round(np.mean(outcome_team_2_2nd)*100,3)])
+                n_simulations = 2000
+                outcome_team_1_ewm, outcome_team_2_ewm, predict_team_1_prop_1, predict_team_2_prop_1 = monte_carlo_sim(final_dict_1_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='ewm')
+                # outcome_team_2_2nd_ewm, outcome_team_1_2nd_ewm, predict_team_2_prop_2, predict_team_1_prop_2 = monte_carlo_sim(final_dict_2_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='ewm')
+
+                final_prop_team_1_ewm = round(np.mean([predict_team_1_prop_1])*100,3)
+                final_prop_team_2_ewm = round(np.mean([predict_team_2_prop_1])*100,3)
+
+                outcome_team_1_kal, outcome_team_2_kal, predict_team_1_prop_1, predict_team_2_prop_1 = monte_carlo_sim(final_dict_1_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='kalman')
+                # outcome_team_2_2nd_kal, outcome_team_1_2nd_kal, predict_team_2_prop_2, predict_team_1_prop_2  = monte_carlo_sim(final_dict_2_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='kalman')
+
+                final_prop_team_1_kalm = round(np.mean([predict_team_1_prop_1])*100,3)
+                final_prop_team_2_kalm = round(np.mean([predict_team_2_prop_1])*100,3)
+
+                # outcome_team_2_2nd, outcome_team_1_2nd = monte_carlo_sim(final_dict_2_dn,self.dnn_class,n_simulations)
+                print('============================================')
+                print(f'Probas ewm: {outcome_team_1_ewm}, {outcome_team_2_ewm}')
+                print(f'Probas kalman: {outcome_team_1_kal}, {outcome_team_2_kal}')
+                print('============================================')
+                outcome_1_ewm = round(np.mean(outcome_team_1_ewm)*100,3)
+                outcome_2_ewm = round(np.mean(outcome_team_2_ewm)*100,3)
+
+                outcome_1_kal = round(np.mean(outcome_team_1_kal)*100,3)
+                outcome_2_kal = round(np.mean(outcome_team_2_kal)*100,3)
+                # outcome_1 = np.mean([round(np.mean(outcome_team_1)*100,3),round(np.mean(outcome_team_1_2nd)*100,3)])
+                # outcome_2 = np.mean([round(np.mean(outcome_team_2)*100,3),round(np.mean(outcome_team_2_2nd)*100,3)])
                 results_dict = {
                     'Team 1': [self.team_1],
                     'Team 2': [self.team_2],
-                    'Team 1 Probability': [outcome_1],
-                    'Team 2 Probability': [outcome_2],
+                    'Team 1 Probability EWM': [outcome_1_ewm],
+                    'Team 2 Probability EWM': [outcome_2_ewm],
+                    'Team 1 Probability KAL': [outcome_1_kal],
+                    'Team 2 Probability KAL': [outcome_2_kal],
+                    'Team 1 Probability EWM Prop': [final_prop_team_1_ewm],
+                    'Team 2 Probability EWM Prop': [final_prop_team_2_ewm],
+                    'Team 1 Probability KAL Prop': [final_prop_team_1_kalm],
+                    'Team 2 Probability KAL Prop': [final_prop_team_2_kalm],
+                    
                 }
                 idx += 1
                 with open(teams_file, 'w') as new_file:
@@ -821,159 +1018,6 @@ class deepCfbMulti():
                 #clean up and check memory
                 collect()
                 check_ram_usage()
-
-                # #preprocess the data
-                # team_1_df = self.str_manipulations(team_1_df)
-                # team_2_df = self.str_manipulations(team_2_df)
-                # team_1_df.drop(columns=self.classifier_drop, inplace=True)
-                # team_2_df.drop(columns=self.classifier_drop, inplace=True)
-                # team_1_df.dropna(inplace=True)
-                # team_2_df.dropna(inplace=True)
-                # print('============')
-                # print(f'Shapes of data for each team: {team_1_df.shape} and {team_2_df.shape}')
-                # print('============')
-                # #handle length mismatch
-                # length_difference = len(team_1_df) - len(team_2_df)
-                # if length_difference > 0:
-                #     team_1_df = team_1_df.iloc[length_difference:]
-                # elif length_difference < 0:
-                #     team_2_df = team_2_df.iloc[-length_difference:]
-
-                # #monte Carlo simulations
-                # n_simulations = 10000
-                # # all_probas = zeros(2)
-                # all_probas_norm = zeros(2)
-                # all_probas_log = zeros(2)
-                # all_probas_beta = zeros(2)
-                # all_probas_best = zeros(2)
-
-                # #team 1 processing and predictions
-                # team_1_df_copy = team_1_df.copy()
-                # team_2_df_copy = team_2_df.copy()
-
-                # for col in [c for c in team_2_df.columns if '_opp' not in c]:
-                #     opp_col = col + '_opp'
-                #     if opp_col in team_1_df_copy.columns:
-                #         team_1_df_copy[opp_col] = team_2_df_copy[col]
-                # #team_1_df_copy['team_2_score'] = team_2_df_copy['team_1_score']
-
-                # X_std = self.scaler.transform(team_1_df_copy)
-                # X_std = X_std[~isnan(X_std).any(axis=1)]
-                # # imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
-                # # X_std = imputer.fit_transform(X_std)
-                # X_fa = self.kpca.transform(X_std)
-                # # X_fa = concatenate((self.umap_reducer.transform(X_std), self.kpca.transform(X_std), 
-                # #                     self.pca.transform(X_std), self.fa.transform(X_std)), axis=1)           
-                # X_fa = self.selector.transform(X_fa)
-                # team_1_df_copy = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, X_fa.shape[1] + 1)])
-                # print('============')
-                # print(f'Shapes of data for predcition: {team_1_df_copy.shape}')
-                # print('============')
-                # # team_1_df_copy.drop(self.non_normal_columns, axis=1, inplace=True)
-                # if layer_diff == True:
-                #     team_1_df_copy = team_1_df_copy.iloc[:, :num_layers]
-                
-                # #feature forecast and monte carlo sampling
-                # all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_1 = self.monte_carlo_sampling(team_1_df_copy, all_probas_norm, 
-                #                                                                                  all_probas_log, all_probas_beta, all_probas_best,
-                #                                                                                  'team_1',self.team_1, self.team_2, n_simulations)
-                #     # for _ in tqdm(range(n_simulations)):
-                #     #     mc_sample = array([norm.rvs(loc=team_1_df_copy[col].mean(), scale=team_1_df_copy[col].std()*3) 
-                #     #                     for col in team_1_df_copy.columns]).T
-                #     #     probas = self.dnn_class.predict(mc_sample.reshape(1, -1), verbose=0)
-                #     #     all_probas += probas[0]
-
-                # #team 2 processing and predictions
-                # for col in [c for c in team_1_df.columns if '_opp' not in c]:
-                #     opp_col = col + '_opp'
-                #     if opp_col in team_2_df.columns:
-                #         team_2_df[opp_col] = team_1_df[col]
-                # #team_2_df['team_2_score'] = team_1_df['team_1_score']
-                
-                # X_std_t2 = self.scaler.transform(team_2_df)
-                # X_std_t2 = X_std_t2[~isnan(X_std_t2).any(axis=1)]
-                # # imputer = SimpleImputer(strategy='mean')  # You can also use 'median' or another strategy
-                # # X_std_t2 = imputer.fit_transform(X_std_t2)
-                # x_fa_t2 = self.kpca.transform(X_std_t2)
-                # # X_fa_t2 = concatenate((self.umap_reducer.transform(X_std_t2), self.kpca.transform(X_std_t2), 
-                # #                     self.pca.transform(X_std_t2), self.fa.transform(X_std_t2)), axis=1)
-                
-                # X_fa_t2_ = self.selector.transform(x_fa_t2)
-                # team_2_df = DataFrame(X_fa_t2_, columns=[f'FA{i}' for i in range(1, X_fa_t2_.shape[1] + 1)])
-                # # team_2_df.drop(self.non_normal_columns, axis=1, inplace=True)
-                # if layer_diff == True:
-                #     team_2_df = team_2_df.iloc[:, :num_layers]
-
-                # all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_props_team_2 = self.monte_carlo_sampling(team_2_df, all_probas_norm, 
-                #                                                                                  all_probas_log, all_probas_beta, all_probas_best,
-                #                                                                                  'team_2',self.team_1, self.team_2, n_simulations)
-                # print('======================')
-                # print(win_props_team_1)
-                # print(win_props_team_2)
-                # print('======================')
-                # # for _ in tqdm(range(n_simulations)):
-                # #     mc_sample = array([norm.rvs(loc=team_2_df[col].mean(), scale=team_2_df[col].std()*3) 
-                # #                     for col in team_2_df.columns]).T
-                # #     probas = self.dnn_class.predict(mc_sample.reshape(1, -1), verbose=0)
-                # #     all_probas += probas[0][::-1]  #flip probabilities for team 2
-
-                # #calculate median probabilities and predicted winner
-                # #normal dist
-                # median_probas_norm = all_probas_norm / (n_simulations * 2)
-                # predicted_class_norm = argmax(median_probas_norm)
-                # predicted_winner_norm = self.team_1 if predicted_class_norm == 0 else self.team_2
-                # #log dist
-                # median_probas_log = all_probas_log / (n_simulations * 2)
-                # predicted_class_log = argmax(median_probas_log)
-                # predicted_winner_log = self.team_1 if predicted_class_log == 0 else self.team_2
-                # #beta dist
-                # median_probas_beta = all_probas_beta / (n_simulations * 2)
-                # predicted_class_beta = argmax(median_probas_beta)
-                # predicted_winner_beta = self.team_1 if predicted_class_beta == 0 else self.team_2
-                # #best dist
-                # median_probas_best = all_probas_best / (n_simulations * 2)
-                # predicted_class_best = argmax(median_probas_best)
-                # predicted_winner_best = self.team_1 if predicted_class_best == 0 else self.team_2
-
-                # #add results to list
-                # results_dict = {
-                #     'Team 1': [self.team_1],
-                #     'Team 2': [self.team_2],
-                #     'Team 1 Probability Norm': [round(median_probas_norm[0] * 100, 3)],
-                #     'Team 2 Probability Norm': [round(median_probas_norm[1] * 100, 3)],
-                #     'Predicted Winner Norm': [predicted_winner_norm],
-                #     'Team 1 Probability Log': [round(median_probas_log[0] * 100, 3)],
-                #     'Team 2 Probability Log': [round(median_probas_log[1] * 100, 3)],
-                #     'Predicted Winner Log': [predicted_winner_log],
-                #     'Team 1 Probability Beta': [round(median_probas_beta[0] * 100, 3)],
-                #     'Team 2 Probability Beta': [round(median_probas_beta[1] * 100, 3)],
-                #     'Predicted Winner Beta': [predicted_winner_beta],
-                #     'Team 1 Probability Best': [round(median_probas_best[0] * 100, 3)],
-                #     'Team 2 Probability Best': [round(median_probas_best[1] * 100, 3)],
-                #     'Predicted Winner Best': [predicted_winner_best]
-                # }
-
-                # #update teams file by removing processed line
-                # idx += 1
-                # with open(teams_file, 'w') as new_file:
-                #     new_file.writelines(lines[idx:])
-
-                # #convert list to DataFrame and write to CSV
-                # if results_dict:
-                #     if not exists(results_file):
-                #         results_df = DataFrame(results_dict)
-                #         results_df.to_csv(results_file, index=False)
-                #     else:
-                #         temp_file = read_csv(results_file)
-                #         concat([temp_file,DataFrame(results_dict)]).to_csv(results_file, index=False)
-                # #clean up and check memory
-                # del team_1_df, team_2_df
-                # collect()
-                # check_ram_usage()
-
-            # except Exception as e:
-            #     print(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data')
-            #     idx += 1
 
     def find_best_distribution(self,data):
         distributions = [
@@ -1087,254 +1131,6 @@ class deepCfbMulti():
             raise ValueError(f"Distribution {dist_name} not handled.")
 
         return samples
-
-    def monte_carlo_sampling(self, df, all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, team, team_1, team_2, n_simulations=10000):
-        #init the team wins
-        team1_wins_norm, team1_wins_log, team1_wins_beta, team1_wins_best = 0, 0, 0, 0
-        team2_wins_norm, team2_wins_log, team2_wins_beta, team2_wins_best = 0, 0, 0, 0
-
-        #find the best dist for each feature
-        data_best_fit = {}
-        # axes = df.hist(bins=20, figsize=(10, 8))
-        axes = df.plot()
-        plt.tight_layout()
-        plt.savefig('histogram_example_used_for_fitting.png')
-        plt.close()
-
-        self.forecasts = {}
-        for column in df.columns:
-            # model = ARIMA(df[column], order=(1, 1, 1))
-            model = auto_arima(df[column], seasonal=False,
-                            suppress_warnings=True,
-                            stepwise=True,
-                            error_action="ignore") #13 week season  m=13,
-            forecast = model.predict(n_periods=1).values  # Forecast for the next game
-            # if column not in self.forecasts:
-            #     self.forecasts[column] = []
-            # self.forecasts[column].append(forecast)
-            self.forecasts[column] = forecast
-        forecasted_data = DataFrame(self.forecasts)
-        forecasted_pred = self.dnn_class.predict(forecasted_data.to_numpy().reshape(1, -1), verbose=0)
-        # print(self.forecasts)
-        # for col in df.columns:
-        #     plt.figure()
-        #     plt.plot(arange(0,len(df[column])),df[column])
-        #     plt.scatter([len(df)] * len(self.forecasts[column]),self.forecasts[column],color='green')
-        #     plt.show()
-
-        # for col in df.columns:
-        #     dist_name, dist_params = self.find_best_distribution(df[col])
-        #     data_best_fit[col] = (dist_name, dist_params) 
-
-        # for _ in tqdm(range(n_simulations)):
-        #     mc_sample_norm = array([norm.rvs(loc=df[col].mean(), scale=df[col].std()*3) 
-        #                         for col in df.columns]).T
-        #     mc_sample_log = array([lognorm.rvs(s=df[col].std(), scale=exp(df[col].mean()))
-        #                         for col in df.columns]).T
-        #     mc_sample_beta = array(beta.rvs(a, b) * (df.min() - df.max()) + df.min())
-
-        #     #sample from distribution
-        #     mc_sample_best_fit = []
-        #     for col in df.columns:
-        #         dist_name, dist_params = data_best_fit[col]
-        #         sample = self.sample_from_distribution(dist_name, dist_params)
-        #         mc_sample_best_fit.append(sample)
-        #     mc_sample_best_fit = array(mc_sample_best_fit).reshape(1, -1)
-
-        #     #predictions
-        #     probas_norm = self.dnn_class.predict(mc_sample_norm.reshape(1, -1), verbose=0)
-        #     probas_log = self.dnn_class.predict(mc_sample_log.reshape(1, -1), verbose=0)
-        #     probas_beta = self.dnn_class.predict(mc_sample_beta.reshape(1, -1), verbose=0)
-        #     probas_best = self.dnn_class.predict(mc_sample_best_fit, verbose=0)
-
-        #     #save probas
-        #     if team == 'team_1':
-        #         all_probas_norm += probas_norm[0]
-        #         all_probas_log += probas_log[0]
-        #         all_probas_beta += probas_beta[0]
-        #         all_probas_best += probas_best[0]
-
-        #         #add how many times team_1 beat team_2
-        #         team1_wins_norm += probas_norm[0][0] > probas_norm[0][1]
-        #         team1_wins_log += probas_log[0][0] > probas_log[0][1]
-        #         team1_wins_beta += probas_beta[0][0] > probas_beta[0][1]
-                
-        #         team2_wins_norm += probas_norm[0][1] > probas_norm[0][0]
-        #         team2_wins_log += probas_log[0][1] > probas_log[0][0]
-        #         team2_wins_beta += probas_beta[0][1] > probas_beta[0][0]
-        #     else:
-        #         all_probas_norm += probas_norm[0][::-1]
-        #         all_probas_log += probas_log[0][::-1]
-        #         all_probas_beta += probas_beta[0][::-1]
-        #         all_probas_best += probas_best[0][::-1]
-
-        #         flip_norm = probas_norm[0][::-1]
-        #         flip_log = probas_log[0][::-1]
-        #         flip_beta = probas_beta[0][::-1]
-                
-        #         team1_wins_norm += flip_norm[0] > flip_norm[1]
-        #         team1_wins_log += flip_log[0] > flip_log[1]
-        #         team1_wins_beta += flip_beta[0] > flip_beta[1]
-                
-        #         team2_wins_norm += flip_norm[1] > flip_norm[0]
-        #         team2_wins_log += flip_log[1] > flip_log[0]
-        #         team2_wins_beta += flip_beta[1] > flip_beta[0]
-        
-        # #calculate win proportions
-        # team1_win_prop_norm = team1_wins_norm / n_simulations
-        # team1_win_prop_log = team1_wins_log / n_simulations
-        # team1_win_prop_beta = team1_wins_beta / n_simulations
-        
-        # team2_win_prop_norm = team2_wins_norm / n_simulations
-        # team2_win_prop_log = team2_wins_log / n_simulations
-        # team2_win_prop_beta = team2_wins_beta / n_simulations
-        
-        # win_proportions = {
-        #     f'{team_1}': {
-        #         'norm': team1_win_prop_norm*100,
-        #         'log': team1_win_prop_log*100,
-        #         'beta': team1_win_prop_beta*100
-        #     },
-        #     f'{team_2}': {
-        #         'norm': team2_win_prop_norm*100,
-        #         'log': team2_win_prop_log*100,
-        #         'beta': team2_win_prop_beta*100
-        #     }
-        # }
-        return all_probas_norm, all_probas_log, all_probas_beta, all_probas_best, win_proportions
-    # def predict_teams(self, teams_file='team_names_played_this_week.txt', results_file='results.txt'):
-    #     try:
-    #         with open(teams_file, 'r') as f:
-    #             lines = f.readlines()
-
-    #         idx = 0
-    #         with open(results_file, 'a') as results:
-    #             while idx < len(lines):
-    #                 line = lines[idx].strip()
-    #                 try:
-    #                     teams = line.split(',')
-    #                     if len(teams) != 2:
-    #                         results.write(f'Invalid format in line: {line}\n')
-    #                         idx += 1
-    #                         continue
-                        
-    #                     self.team_1, self.team_2 = teams
-    #                     print(f'Currently making predictions for {self.team_1} vs. {self.team_2}')
-                        
-    #                     #team data
-    #                     team_1_df_2023 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/2023/gamelog/', self.team_1.lower(), 2023)
-    #                     team_1_df_2024 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_1.lower()}/2024/gamelog/', self.team_1.lower(), 2024)
-    #                     team_1_df = concat([team_1_df_2023, team_1_df_2024])
-
-    #                     team_2_df_2023 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/2023/gamelog/', self.team_2.lower(), 2023)
-    #                     team_2_df_2024 = collect_two_teams(f'https://www.sports-reference.com/cfb/schools/{self.team_2.lower()}/2024/gamelog/', self.team_2.lower(), 2024)
-    #                     team_2_df = concat([team_2_df_2023, team_2_df_2024])
-
-    #                     #preprocess
-    #                     team_1_df = self.str_manipulations(team_1_df)
-    #                     team_2_df = self.str_manipulations(team_2_df)
-    #                     team_1_df.drop(columns=self.classifier_drop, inplace=True)
-    #                     team_2_df.drop(columns=self.classifier_drop, inplace=True)
-
-    #                     #length mismatch
-    #                     length_difference = len(team_1_df) - len(team_2_df)
-    #                     if length_difference > 0:
-    #                         team_1_df = team_1_df.iloc[length_difference:]
-    #                     elif length_difference < 0:
-    #                         team_2_df = team_2_df.iloc[-length_difference:]
-
-    #                     #Monte Carlo simulations
-    #                     n_simulations = 5000
-    #                     all_probas = zeros(2)
-
-    #                     #team 1
-    #                     team_1_df_copy = team_1_df.copy()
-    #                     team_2_df_copy = team_2_df.copy()
-
-    #                     for col in [c for c in team_2_df.columns if '_opp' not in c]:
-    #                         opp_col = col + '_opp'
-    #                         if opp_col in team_1_df_copy.columns:
-    #                             team_1_df_copy[opp_col] = team_2_df_copy[col]
-    #                     team_1_df_copy['team_2_score'] = team_2_df_copy['team_1_score']
-
-    #                     #transformations and predictions
-    #                     X_std = self.scaler.transform(team_1_df_copy)
-    #                     X_fa = self.fa.transform(X_std)
-    #                     team_1_df_copy = DataFrame(X_fa, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
-    #                     team_1_df_copy.drop(self.non_normal_columns, axis=1, inplace=True)
-
-    #                     for _ in tqdm(range(n_simulations)):
-    #                         mc_sample = array([norm.rvs(loc=team_1_df_copy[col].mean(), scale=team_1_df_copy[col].std()*3) 
-    #                                         for col in team_1_df_copy.columns]).T
-    #                         probas = self.dnn_class.predict(mc_sample.reshape(1, -1))
-    #                         all_probas += probas[0]
-
-    #                     #team 2
-    #                     for col in [c for c in team_1_df.columns if '_opp' not in c]:
-    #                         opp_col = col + '_opp'
-    #                         if opp_col in team_2_df.columns:
-    #                             team_2_df[opp_col] = team_1_df[col]
-    #                     team_2_df['team_2_score'] = team_1_df['team_1_score']
-
-    #                     X_std_t2 = self.scaler.transform(team_2_df)
-    #                     X_fa_t2 = self.fa.transform(X_std_t2)
-    #                     final_df_t2 = DataFrame(X_fa_t2, columns=[f'FA{i}' for i in range(1, self.manual_comp + 1)])
-    #                     final_df_t2.drop(self.non_normal_columns, axis=1, inplace=True)
-
-    #                     for _ in tqdm(range(n_simulations)):
-    #                         mc_sample = array([norm.rvs(loc=final_df_t2[col].mean(), scale=final_df_t2[col].std()*3) 
-    #                                         for col in final_df_t2.columns]).T
-    #                         probas = self.dnn_class.predict(mc_sample.reshape(1, -1))
-    #                         all_probas += probas[0][::-1]  #flip probabilities
-
-    #                     #median probabilities
-    #                     median_probas = all_probas / (n_simulations * 2)
-    #                     predicted_class = argmax(median_probas)
-
-    #                     rolling_features_2_team_1 = team_1_df_copy.rolling(2).median().iloc[-1:]
-    #                     rolling_features_3_team_1 = team_1_df_copy.rolling(3).median().iloc[-1:]
-    #                     rolling_features_ewm = team_1_df_copy.ewm(span=2).mean().iloc[-1:]
-    #                     rolling_low = team_1_df_copy.rolling(window=2).quantile(0.25).iloc[-1:]
-    #                     rolling_high = team_1_df_copy.rolling(window=2).quantile(0.75).iloc[-1:]
-
-    #                     #predictions for rolling statistics
-    #                     predictions = [
-    #                         ('rolling median of 2', self.dnn_class.predict(rolling_features_2_team_1)),
-    #                         ('rolling median of 3', self.dnn_class.predict(rolling_features_3_team_1)),
-    #                         ('exponential weighted average', self.dnn_class.predict(rolling_features_ewm)),
-    #                         ('25th percentile', self.dnn_class.predict(rolling_low)),
-    #                         ('75th percentile', self.dnn_class.predict(rolling_high))
-    #                     ]
-
-    #                     #results
-    #                     results.write('==============================\n')
-    #                     results.write(f'Win Probabilities from Monte Carlo Simulation with {n_simulations*2} simulations\n')
-    #                     results.write(f'{self.team_1} : {round(median_probas[0] * 100, 3)}%\n')
-    #                     results.write(f'{self.team_2} : {round(median_probas[1] * 100, 3)}%\n')
-
-    #                     for label, pred in predictions:
-    #                         results.write(f'Win Probabilities from {label}\n')
-    #                         results.write(f'{self.team_1} : {round(pred[0][0] * 100, 3)}%\n')
-    #                         results.write(f'{self.team_2} : {round(pred[0][1] * 100, 3)}%\n')
-
-    #                     results.write('==============================\n')
-
-    #                     #update teams file by removing processed line
-    #                     idx += 1
-    #                     with open(teams_file, 'w') as new_file:
-    #                         new_file.writelines(lines[idx:])
-
-    #                     #clean up and check memory
-    #                     del team_1_df, team_2_df
-    #                     collect()
-    #                     check_ram_usage()
-
-    #                 except Exception as e:
-    #                     results.write(f'The error: {e}. Most likely {self.team_1} or {self.team_2} do not have data\n')
-    #                     idx += 1
-
-    #     except Exception as e:
-    #         print(f"Error: {e}")
 
     def extract_features(self,df):
         team_df_forecast_last = df.iloc[-1:] #last game

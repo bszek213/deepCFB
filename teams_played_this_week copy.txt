@@ -1,39 +1,55 @@
-akron,rutgers
-pittsburgh,cincinnati
-troy,memphis
-army,florida-atlantic
-northern-illinois,notre-dame
-baylor,utah
-iowa-state,iowa
-jacksonville-state,louisville
-california,auburn
-south-carolina,kentucky
-michigan-state,maryland
-eastern-michigan,washington
-massachusetts,toledo
-charlotte,north-carolina
-temple,navy
-texas-san-antonio,texas-state
-marshall,virginia-tech
-central-michigan,florida-international
-east-carolina,old-dominion
-south-alabama,ohio
-south-florida,alabama
-buffalo,missouri
-kansas,illinois
-virginia,wake-forest
-san-josé-state,air-force
-georgia-southern,nevada
-tulsa,arkansas-state
-alabama-birmingham,louisiana-monroe
-western-michigan,ohio-state
-tennessee,north-carolina-state
-colorado,nebraska
-houston,oklahoma
-appalachian-state,clemson
-boise-state,oregon
-texas-tech,washington-state
-liberty,new-mexico-state
-mississippi-state,arizona-state
-oregon-state,san-diego-state
-utah-state,southern-california
+Ball State	@ Buffalo
+Western Michigan	@ Bowling Green
+Central Michigan	@ Toledo
+Kent State	@ Miami (OH)
+Akron	@ Northern Illinois
+Eastern Michigan	@ Ohio
+East Carolina	@ Tulsa
+Wyoming	@ Colorado State
+North Texas	@ UTSA
+UCLA	@ Washington
+Houston	@ Arizona
+2Ohio State	@ Northwestern
+5Texas	@ Arkansas
+23Clemson	@ 18Pittsburgh
+Utah	@ 20Colorado
+Liberty	@ Massachusetts
+Louisiana Tech	@ Western Kentucky
+Tulane	@ Navy
+UL Monroe	@ Auburn
+Coastal Carolina	@ Marshall
+Murray State	@ Kentucky
+Mercer	@ 11Alabama
+Florida International	@ Jacksonville State
+Florida Atlantic	@ Temple
+Michigan State	@ Illinois
+Syracuse	@ California
+Sam Houston	@ Kennesaw State
+Hawai'i	@ Utah State
+6Penn State	@ Purdue
+Virginia	@ 10Notre Dame
+Boston College	@ 13SMU
+15LSU	@ Florida
+22Louisville	@ Stanford
+Oregon State	@ Air Force
+South Florida	@ Charlotte
+Nebraska	@ USC
+Baylor	@ West Virginia
+Troy	@ Georgia Southern
+James Madison	@ Old Dominion
+24Missouri	@ South Carolina
+Arkansas State	@ Georgia State
+Rutgers	@ Maryland
+12Boise State	@ San José State
+Arizona State	@ 19Kansas State
+South Alabama	@ Louisiana
+Southern Miss	@ Texas State
+1Oregon	@ Wisconsin
+7Tennessee	@ 3Georgia
+New Mexico State	@ 14Texas A&M
+Cincinnati	@ 17Iowa State
+Wake Forest	@ North Carolina
+UAB	@ Memphis
+21Washington State	@ New Mexico
+Kansas	@ 9BYU
+San Diego State	@ UNLV
