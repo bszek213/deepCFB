@@ -354,12 +354,12 @@ def kalman_filter_update(data, initial_mu, initial_std, process_var=1e-3, measur
     kalman_results = {}
     
     #measurement variance
-    ewm_smoothed = data.ewm(span=3).mean()
+    ewm_smoothed = data.ewm(alpha=0.3,adjust=False).mean()
     residuals = data - ewm_smoothed
     measurement_var = residuals.var().mean()
 
     #process variance
-    smoothed_data = data.ewm(span=3).mean()
+    smoothed_data = data.ewm(alpha=0.3,adjust=False).mean()
     process_diff = smoothed_data.diff().dropna()
     process_var = process_diff.var().mean()
 
@@ -927,13 +927,13 @@ class deepCfbMulti():
 
                 x_curr = self.selector.transform(self.kpca.transform(self.scaler.transform(df_curr)))
                 x_curr = DataFrame(x_curr)
-                ewm_mean = x_curr.ewm(span=3).mean().iloc[-1]
-                ewm_std = x_curr.ewm(span=3).std().iloc[-1]
+                ewm_mean = x_curr.ewm(alpha=0.3,adjust=False).mean().iloc[-1]
+                ewm_std = x_curr.ewm(alpha=0.3,adjust=False).std().iloc[-1]
                 final_dict_1_dn_ewm = {}
                 for col in ewm_mean.index:
                     final_dict_1_dn_ewm[col] = {
                         'mu': ewm_mean[col],
-                        'std': ewm_std[col]
+                        'std': ewm_std[col] * 1.96
                     }
                 final_dict_1_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
                 # final_dict_1 = bayes_calc(df_list_1_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
@@ -951,13 +951,13 @@ class deepCfbMulti():
 
                 x_curr_2 = self.selector.transform(self.kpca.transform(self.scaler.transform(df_curr_2)))
                 x_curr_2 = DataFrame(x_curr_2)
-                ewm_mean = x_curr.ewm(span=3).mean().iloc[-1]
-                ewm_std = x_curr.ewm(span=3).std().iloc[-1]
+                ewm_mean = x_curr.ewm(alpha=0.3,adjust=False).mean().iloc[-1]
+                ewm_std = x_curr.ewm(alpha=0.3,adjust=False).std().iloc[-1]
                 final_dict_2_dn_ewm = {}
                 for col in ewm_mean.index:
                     final_dict_2_dn_ewm[col] = {
                         'mu': ewm_mean[col],
-                        'std': ewm_std[col]
+                        'std': ewm_std[col] * 1.96
                     }
                 final_dict_2_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
                 # final_dict_2 = bayes_calc(df_list_2_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
