@@ -416,15 +416,15 @@ class deepCfbMulti():
             if column != 'game_result':
                 self.all_data[column] = to_numeric(self.all_data[column], errors='coerce')
 
-        self.x_regress = read_csv(join(getcwd(),'x_feature_regression.csv')) 
-        self.x_regress = concat([self.x_regress, read_csv(join(getcwd(),'x_feature_regression_2024.csv'))])
+        # self.x_regress = read_csv(join(getcwd(),'x_feature_regression.csv')) 
+        # self.x_regress = concat([self.x_regress, read_csv(join(getcwd(),'x_feature_regression_2024.csv'))])
 
-        self.y_regress = read_csv(join(getcwd(),'y_feature_regression.csv')) 
-        self.y_regress = concat([self.y_regress, read_csv(join(getcwd(),'y_feature_regression_2024.csv'))])
+        # self.y_regress = read_csv(join(getcwd(),'y_feature_regression.csv')) 
+        # self.y_regress = concat([self.y_regress, read_csv(join(getcwd(),'y_feature_regression_2024.csv'))])
 
         self.all_data = self.str_manipulations(self.all_data)
-        self.x_regress = self.str_manipulations(self.x_regress)
-        self.y_regress = self.str_manipulations(self.y_regress)
+        # self.x_regress = self.str_manipulations(self.x_regress)
+        # self.y_regress = self.str_manipulations(self.y_regress)
 
         self.classifier_drop = ['team_1_outcome','team_2_outcome','game_loc'
                                 ] #'','team_1_score','team_2_score'
