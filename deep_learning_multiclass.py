@@ -933,7 +933,7 @@ class deepCfbMulti():
                 for col in ewm_mean.index:
                     final_dict_1_dn_ewm[col] = {
                         'mu': ewm_mean[col],
-                        'std': ewm_std[col] * 1.96
+                        'std': ewm_std[col] #* 1.96
                     }
                 final_dict_1_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
                 # final_dict_1 = bayes_calc(df_list_1_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
@@ -957,7 +957,7 @@ class deepCfbMulti():
                 for col in ewm_mean.index:
                     final_dict_2_dn_ewm[col] = {
                         'mu': ewm_mean[col],
-                        'std': ewm_std[col] * 1.96
+                        'std': ewm_std[col] #* 1.96
                     }
                 final_dict_2_dn_kal = kalman_filter_update(x_curr, x_curr.mean(), x_curr.std())
                 # final_dict_2 = bayes_calc(df_list_2_w_opp,self.classifier_drop, self.selector,self.kpca,self.scaler)
@@ -965,29 +965,30 @@ class deepCfbMulti():
                 # final_dict_1_dn = final_dict_1[list(final_dict_1.keys())[-1]]
                 # final_dict_2_dn = final_dict_2[list(final_dict_2.keys())[-1]]
 
-                n_simulations = 2000
-                outcome_team_1_ewm, outcome_team_2_ewm, predict_team_1_prop_1, predict_team_2_prop_1 = monte_carlo_sim(final_dict_1_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='ewm')
-                # outcome_team_2_2nd_ewm, outcome_team_1_2nd_ewm, predict_team_2_prop_2, predict_team_1_prop_2 = monte_carlo_sim(final_dict_2_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='ewm')
+                n_simulations = 1000
+                outcome_team_1_ewm, outcome_team_2_ewm, predict_team_1_prop_1_ewm, predict_team_2_prop_1_ewm = monte_carlo_sim(final_dict_1_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='ewm')
+                outcome_team_2_2nd_ewm, outcome_team_1_2nd_ewm, predict_team_2_prop_2_ewm, predict_team_1_prop_2_ewm = monte_carlo_sim(final_dict_2_dn_ewm,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='ewm')
 
-                final_prop_team_1_ewm = round(np.mean([predict_team_1_prop_1])*100,3)
-                final_prop_team_2_ewm = round(np.mean([predict_team_2_prop_1])*100,3)
+                final_prop_team_1_ewm = round(np.mean([predict_team_1_prop_1_ewm,predict_team_2_prop_2_ewm])*100,3)
+                final_prop_team_2_ewm = round(np.mean([predict_team_2_prop_1_ewm,predict_team_1_prop_2_ewm])*100,3)
 
-                outcome_team_1_kal, outcome_team_2_kal, predict_team_1_prop_1, predict_team_2_prop_1 = monte_carlo_sim(final_dict_1_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='kalman')
-                # outcome_team_2_2nd_kal, outcome_team_1_2nd_kal, predict_team_2_prop_2, predict_team_1_prop_2  = monte_carlo_sim(final_dict_2_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='kalman')
+                outcome_team_1_kal, outcome_team_2_kal, predict_team_1_prop_1_kal, predict_team_2_prop_1_kal = monte_carlo_sim(final_dict_1_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_1,team_2=self.team_2,pred_type='kalman')
+                outcome_team_2_2nd_kal, outcome_team_1_2nd_kal, predict_team_2_prop_2_kal, predict_team_1_prop_2_kal  = monte_carlo_sim(final_dict_2_dn_kal,dnn_class=self.dnn_class,n_simulations=n_simulations,team_1=self.team_2,team_2=self.team_1,pred_type='kalman')
 
-                final_prop_team_1_kalm = round(np.mean([predict_team_1_prop_1])*100,3)
-                final_prop_team_2_kalm = round(np.mean([predict_team_2_prop_1])*100,3)
+                final_prop_team_1_kalm = round(np.mean([predict_team_1_prop_1_kal,predict_team_2_prop_2_kal])*100,3)
+                final_prop_team_2_kalm = round(np.mean([predict_team_2_prop_1_kal,predict_team_1_prop_2_kal])*100,3)
 
-                # outcome_team_2_2nd, outcome_team_1_2nd = monte_carlo_sim(final_dict_2_dn,self.dnn_class,n_simulations)
                 print('============================================')
-                print(f'Probas ewm: {outcome_team_1_ewm}, {outcome_team_2_ewm}')
-                print(f'Probas kalman: {outcome_team_1_kal}, {outcome_team_2_kal}')
+                print(f'Probas ewm: [{outcome_team_1_ewm,outcome_team_1_2nd_ewm}], [{outcome_team_2_ewm,outcome_team_2_2nd_ewm}]')
+                print(f'Probas kalman: [{outcome_team_1_kal,outcome_team_1_2nd_kal}], [{outcome_team_2_kal,outcome_team_2_2nd_kal}]')
                 print('============================================')
-                outcome_1_ewm = round(np.mean(outcome_team_1_ewm)*100,3)
-                outcome_2_ewm = round(np.mean(outcome_team_2_ewm)*100,3)
 
-                outcome_1_kal = round(np.mean(outcome_team_1_kal)*100,3)
-                outcome_2_kal = round(np.mean(outcome_team_2_kal)*100,3)
+                #EXPERIMENTAL APPROACH. TESTING WHY I AM GETTING 50/50 PROBABILITIES. FLIPPED outcome_team_2_2nd_ewm AND outcome_team_1_2nd_ewm
+                outcome_1_ewm = round(np.mean([outcome_team_1_ewm,outcome_team_2_2nd_ewm])*100,3)
+                outcome_2_ewm = round(np.mean([outcome_team_2_ewm,outcome_team_1_2nd_ewm])*100,3)
+
+                outcome_1_kal = round(np.mean([outcome_team_1_kal,outcome_team_2_2nd_kal])*100,3)
+                outcome_2_kal = round(np.mean([outcome_team_2_kal,outcome_team_1_2nd_kal])*100,3)
                 # outcome_1 = np.mean([round(np.mean(outcome_team_1)*100,3),round(np.mean(outcome_team_1_2nd)*100,3)])
                 # outcome_2 = np.mean([round(np.mean(outcome_team_2)*100,3),round(np.mean(outcome_team_2_2nd)*100,3)])
                 results_dict = {
